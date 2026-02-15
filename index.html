@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Mario Claw</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+canvas { image-rendering: pixelated; border: 2px solid #333; }
+</style>
+</head>
+<body>
+<canvas id="game" width="800" height="480"></canvas>
+<script>
+// ============================================================
+// SUPER MARIO CLAW — A Mario-style platformer with crabs!
+// ============================================================
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// --- CONSTANTS ---
+const TILE = 32;
+const GRAVITY = 0.6;
+const FRICTION = 0.85;
+const COLS = 25;
+const ROWS = 15;
+
+// --- AUDIO ENGINE ---
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+function playSound(freq, duration, type='square', vol=0.15) {
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function sfxJump() { playSound(400, 0.15); setTimeout(() => playSound(600, 0.1), 50); }
+function sfxCoin() { playSound(988, 0.08); setTimeout(() => playSound(1319, 0.15), 80); }
+function sfxStomp() { playSound(200, 0.2, 'sawtooth', 0.2); }
+function sfxDie() { playSound(300, 0.15); setTimeout(() => playSound(200, 0.2), 150); setTimeout(() => playSound(100, 0.4), 350); }
+function sfxWin() { [0,100,200,300,400].forEach((d,i) => setTimeout(() => playSound([523,659,784,1047,1319][i], 0.2, 'square', 0.12), d)); }
+function sfxPowerup() { playSound(520, 0.1); setTimeout(() => playSound(660, 0.1), 100); setTimeout(() => playSound(790, 0.15), 200); }
+
+// --- INPUT ---
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.code] = true; ensureAudio(); });
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// --- GAME STATE ---
+let gameState = 'title'; // title, playing, dead, win, gameover
+let lives = 3;
+let score = 0;
+let coins = 0;
+let level = 1;
+let cameraX = 0;
+let deathTimer = 0;
+let winTimer = 0;
+let titleBlink = 0;
+let particles = [];
+let floatTexts = [];
+
+// --- LEVEL DATA ---
+// Tile types: 0=air, 1=ground, 2=brick, 3=question block, 4=pipe, 5=flag
+const LEVELS = [
+  // Level 1
+  {
+    width: 120,
+    bg: '#6185f8',
+    groundColor: '#8B4513',
+    brickColor: '#C84C09',
+    platforms: [
+      // ground - full width with gaps
+      ...Array.from({length: 120}, (_, i) => {
+        if ((i >= 38 && i <= 40) || (i >= 58 && i <= 59) || (i >= 78 && i <= 80)) return null;
+        return {x: i, y: 14, t: 1};
+      }).filter(Boolean),
+      ...Array.from({length: 120}, (_, i) => {
+        if ((i >= 38 && i <= 40) || (i >= 58 && i <= 59) || (i >= 78 && i <= 80)) return null;
+        return {x: i, y: 13, t: 1};
+      }).filter(Boolean),
+      // floating platforms
+      {x:8,y:9,t:2},{x:9,y:9,t:3},{x:10,y:9,t:2},{x:11,y:9,t:2},
+      {x:16,y:7,t:3},
+      {x:22,y:9,t:2},{x:23,y:9,t:2},{x:24,y:9,t:3},{x:25,y:9,t:2},
+      {x:30,y:7,t:2},{x:31,y:7,t:2},{x:32,y:7,t:2},
+      {x:35,y:5,t:3},
+      {x:44,y:9,t:2},{x:45,y:9,t:3},{x:46,y:9,t:2},
+      {x:50,y:7,t:2},{x:51,y:7,t:2},
+      {x:55,y:9,t:2},{x:56,y:9,t:2},{x:57,y:9,t:3},
+      {x:63,y:9,t:2},{x:64,y:9,t:2},{x:65,y:9,t:2},
+      {x:70,y:7,t:3},{x:71,y:7,t:2},
+      {x:75,y:9,t:2},{x:76,y:9,t:3},{x:77,y:9,t:2},
+      {x:85,y:9,t:2},{x:86,y:9,t:2},{x:87,y:9,t:3},{x:88,y:9,t:2},
+      {x:92,y:7,t:2},{x:93,y:7,t:2},
+      {x:98,y:9,t:2},{x:99,y:9,t:2},
+      // stairs near end
+      {x:105,y:12,t:1},{x:106,y:12,t:1},{x:106,y:11,t:1},{x:107,y:12,t:1},{x:107,y:11,t:1},{x:107,y:10,t:1},
+      {x:108,y:12,t:1},{x:108,y:11,t:1},{x:108,y:10,t:1},{x:108,y:9,t:1},
+    ],
+    coins: [
+      {x:9,y:8},{x:16,y:6},{x:24,y:8},{x:30.5,y:5},{x:31.5,y:5},{x:35,y:3},
+      {x:45,y:8},{x:50.5,y:5},{x:56,y:7},{x:57,y:7},
+      {x:64,y:7},{x:70,y:5},{x:76,y:8},{x:86,y:7},{x:87,y:7},
+      {x:92.5,y:5},{x:99,y:7}
+    ],
+    crabs: [
+      {x:12,y:12},{x:20,y:12},{x:28,y:12},{x:34,y:12},
+      {x:42,y:12},{x:48,y:12},{x:53,y:12},{x:62,y:12},
+      {x:68,y:12},{x:73,y:12},{x:83,y:12},{x:90,y:12},{x:96,y:12}
+    ],
+    flag: {x: 115, y: 3},
+    playerStart: {x: 2, y: 12}
+  },
+  // Level 2
+  {
+    width: 140,
+    bg: '#1a1a2e',
+    groundColor: '#4a4a6a',
+    brickColor: '#6a4a8a',
+    platforms: [
+      ...Array.from({length: 140}, (_, i) => {
+        if ((i >= 25 && i <= 28) || (i >= 45 && i <= 48) || (i >= 65 && i <= 69) || (i >= 90 && i <= 93) || (i >= 110 && i <= 112)) return null;
+        return {x: i, y: 14, t: 1};
+      }).filter(Boolean),
+      ...Array.from({length: 140}, (_, i) => {
+        if ((i >= 25 && i <= 28) || (i >= 45 && i <= 48) || (i >= 65 && i <= 69) || (i >= 90 && i <= 93) || (i >= 110 && i <= 112)) return null;
+        return {x: i, y: 13, t: 1};
+      }).filter(Boolean),
+      {x:10,y:9,t:2},{x:11,y:9,t:3},{x:12,y:9,t:2},
+      {x:18,y:7,t:2},{x:19,y:7,t:2},{x:20,y:7,t:3},
+      {x:23,y:10,t:2},{x:24,y:10,t:2},
+      {x:29,y:10,t:2},{x:30,y:10,t:2},{x:31,y:10,t:2},
+      {x:35,y:8,t:3},{x:36,y:8,t:2},{x:37,y:8,t:2},
+      {x:42,y:6,t:2},{x:43,y:6,t:3},
+      {x:49,y:10,t:2},{x:50,y:10,t:2},
+      {x:54,y:8,t:2},{x:55,y:8,t:3},{x:56,y:8,t:2},
+      {x:60,y:6,t:2},{x:61,y:6,t:2},
+      {x:70,y:10,t:2},{x:71,y:10,t:2},{x:72,y:10,t:2},
+      {x:76,y:8,t:3},{x:77,y:8,t:2},
+      {x:82,y:9,t:2},{x:83,y:9,t:2},{x:84,y:9,t:3},
+      {x:88,y:7,t:2},{x:89,y:7,t:2},
+      {x:94,y:10,t:2},{x:95,y:10,t:2},
+      {x:100,y:8,t:2},{x:101,y:8,t:3},{x:102,y:8,t:2},
+      {x:107,y:9,t:2},{x:108,y:9,t:2},
+      {x:113,y:10,t:2},{x:114,y:10,t:2},{x:115,y:10,t:2},
+      {x:120,y:12,t:1},{x:121,y:12,t:1},{x:121,y:11,t:1},
+      {x:122,y:12,t:1},{x:122,y:11,t:1},{x:122,y:10,t:1},
+      {x:123,y:12,t:1},{x:123,y:11,t:1},{x:123,y:10,t:1},{x:123,y:9,t:1},
+    ],
+    coins: [
+      {x:11,y:8},{x:19,y:5},{x:20,y:5},{x:35,y:6},{x:43,y:4},
+      {x:55,y:6},{x:60.5,y:4},{x:76,y:6},{x:83,y:7},{x:84,y:7},
+      {x:101,y:6},{x:107.5,y:7}
+    ],
+    crabs: [
+      {x:8,y:12},{x:15,y:12},{x:22,y:12},{x:33,y:12},
+      {x:40,y:12},{x:52,y:12},{x:58,y:12},{x:63,y:12},
+      {x:74,y:12},{x:80,y:12},{x:86,y:12},{x:97,y:12},
+      {x:105,y:12},{x:117,y:12}
+    ],
+    flag: {x: 130, y: 3},
+    playerStart: {x: 2, y: 12}
+  }
+];
+
+// --- PLAYER ---
+let player = {
+  x: 0, y: 0, vx: 0, vy: 0,
+  width: 24, height: 30,
+  onGround: false, facing: 1,
+  frame: 0, frameTimer: 0,
+  invincible: 0, big: false
+};
+
+// --- ENTITIES ---
+let levelTiles = [];
+let coinList = [];
+let crabList = [];
+let flagPos = {};
+let questionHit = new Set();
+
+function loadLevel(n) {
+  const L = LEVELS[n - 1];
+  levelTiles = [];
+  for (const p of L.platforms) {
+    levelTiles.push({...p});
+  }
+  coinList = L.coins.map(c => ({x: c.x * TILE + 8, y: c.y * TILE + 4, w: 16, h: 16, collected: false, bobOffset: Math.random() * Math.PI * 2}));
+  crabList = L.crabs.map(c => ({x: c.x * TILE, y: c.y * TILE, w: 28, h: 24, vx: -1.2, alive: true, frame: 0, frameTimer: 0, squishTimer: 0}));
+  flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
+  player.x = L.playerStart.x * TILE;
+  player.y = L.playerStart.y * TILE;
+  player.vx = 0;
+  player.vy = 0;
+  player.onGround = false;
+  cameraX = 0;
+  questionHit = new Set();
+  particles = [];
+  floatTexts = [];
+}
+
+// --- TILE COLLISION ---
+function getTile(tx, ty) {
+  return levelTiles.find(t => t.x === tx && t.y === ty);
+}
+
+function isSolid(tx, ty) {
+  return !!getTile(tx, ty);
+}
+
+function worldCollide(entity) {
+  const left = Math.floor(entity.x / TILE);
+  const right = Math.floor((entity.x + entity.width - 1) / TILE);
+  const top = Math.floor(entity.y / TILE);
+  const bottom = Math.floor((entity.y + entity.height - 1) / TILE);
+
+  entity.onGround = false;
+
+  // Vertical
+  if (entity.vy > 0) {
+    for (let tx = left; tx <= right; tx++) {
+      if (isSolid(tx, bottom)) {
+        entity.y = bottom * TILE - entity.height;
+        entity.vy = 0;
+        entity.onGround = true;
+        break;
+      }
+    }
+  } else if (entity.vy < 0) {
+    for (let tx = left; tx <= right; tx++) {
+      if (isSolid(tx, top)) {
+        entity.y = (top + 1) * TILE;
+        entity.vy = 0;
+        // Hit question block
+        const tile = getTile(tx, top);
+        if (tile && tile.t === 3 && !questionHit.has(`${tx},${top}`)) {
+          questionHit.add(`${tx},${top}`);
+          score += 100;
+          coins++;
+          sfxCoin();
+          floatTexts.push({x: tx * TILE, y: top * TILE - 10, text: '+100', timer: 40, vy: -1.5});
+          // Spawn coin particle
+          for (let i = 0; i < 4; i++) {
+            particles.push({x: tx*TILE+16, y: top*TILE, vx: (Math.random()-0.5)*3, vy: -Math.random()*4-2, life: 30, color: '#FFD700', size: 3});
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  // Recalculate after vertical
+  const left2 = Math.floor(entity.x / TILE);
+  const right2 = Math.floor((entity.x + entity.width - 1) / TILE);
+  const top2 = Math.floor(entity.y / TILE);
+  const bottom2 = Math.floor((entity.y + entity.height - 1) / TILE);
+
+  // Horizontal
+  if (entity.vx > 0) {
+    for (let ty = top2; ty <= bottom2; ty++) {
+      if (isSolid(right2, ty)) {
+        entity.x = right2 * TILE - entity.width;
+        entity.vx = 0;
+        break;
+      }
+    }
+  } else if (entity.vx < 0) {
+    for (let ty = top2; ty <= bottom2; ty++) {
+      if (isSolid(left2, ty)) {
+        entity.x = (left2 + 1) * TILE;
+        entity.vx = 0;
+        break;
+      }
+    }
+  }
+}
+
+// --- DRAWING HELPERS ---
+function drawPixelChar(x, y, facing, frame) {
+  const px = Math.round(x - cameraX);
+  const py = Math.round(y);
+  ctx.save();
+  if (player.invincible > 0 && Math.floor(player.invincible / 3) % 2) {
+    ctx.globalAlpha = 0.4;
+  }
+
+  // Body
+  ctx.fillStyle = '#E84040';
+  ctx.fillRect(px + 4, py + 8, 16, 14);
+
+  // Head
+  ctx.fillStyle = '#FFB880';
+  ctx.fillRect(px + 6, py, 12, 10);
+
+  // Hat
+  ctx.fillStyle = '#E84040';
+  ctx.fillRect(px + 4, py - 2, 16, 6);
+  ctx.fillRect(px + 2, py + 2, 20, 3);
+
+  // Hat emblem
+  ctx.fillStyle = '#FFF';
+  ctx.fillRect(px + 10, py, 4, 4);
+
+  // Eyes
+  ctx.fillStyle = '#000';
+  if (facing > 0) {
+    ctx.fillRect(px + 14, py + 4, 3, 3);
+  } else {
+    ctx.fillRect(px + 7, py + 4, 3, 3);
+  }
+
+  // Legs
+  ctx.fillStyle = '#4040E8';
+  const legOffset = Math.sin(frame * 0.3) * 3;
+  ctx.fillRect(px + 5, py + 22, 6, 8);
+  ctx.fillRect(px + 13, py + 22, 6, 8);
+
+  // Shoes
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(px + 3, py + 28, 8, 4);
+  ctx.fillRect(px + 13, py + 28, 8, 4);
+
+  ctx.restore();
+}
+
+function drawCrab(crab) {
+  const px = Math.round(crab.x - cameraX);
+  const py = Math.round(crab.y);
+
+  if (crab.squishTimer > 0) {
+    // Squished crab
+    ctx.fillStyle = '#D44';
+    ctx.fillRect(px + 2, py + 18, 24, 6);
+    ctx.fillStyle = '#F88';
+    ctx.fillRect(px + 4, py + 19, 20, 4);
+    return;
+  }
+
+  // Shell
+  ctx.fillStyle = '#D44';
+  ctx.fillRect(px + 4, py + 4, 20, 16);
+  ctx.fillStyle = '#F66';
+  ctx.fillRect(px + 6, py + 6, 16, 12);
+
+  // Claws
+  const clawAnim = Math.sin(crab.frame * 0.15) * 2;
+  ctx.fillStyle = '#D44';
+  ctx.fillRect(px - 2, py + 4 + clawAnim, 8, 6);
+  ctx.fillRect(px + 22, py + 4 - clawAnim, 8, 6);
+  // Claw tips
+  ctx.fillStyle = '#F88';
+  ctx.fillRect(px - 2, py + 2 + clawAnim, 4, 4);
+  ctx.fillRect(px + 26, py + 2 - clawAnim, 4, 4);
+
+  // Eyes
+  ctx.fillStyle = '#FFF';
+  ctx.fillRect(px + 8, py + 2, 5, 5);
+  ctx.fillRect(px + 16, py + 2, 5, 5);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(px + 10, py + 3, 2, 3);
+  ctx.fillRect(px + 18, py + 3, 2, 3);
+
+  // Legs
+  ctx.fillStyle = '#C33';
+  const legA = Math.sin(crab.frame * 0.2) * 2;
+  ctx.fillRect(px + 6, py + 20, 4, 4 + legA);
+  ctx.fillRect(px + 12, py + 20, 4, 4 - legA);
+  ctx.fillRect(px + 18, py + 20, 4, 4 + legA);
+}
+
+function drawTile(tile) {
+  const px = tile.x * TILE - cameraX;
+  const py = tile.y * TILE;
+  const L = LEVELS[level - 1];
+
+  if (px < -TILE || px > canvas.width + TILE) return;
+
+  if (tile.t === 1) {
+    // Ground
+    ctx.fillStyle = L.groundColor;
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = '#5a8a20';
+    if (tile.y <= 13) {
+      ctx.fillRect(px, py, TILE, 4);
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.strokeRect(px, py, TILE, TILE);
+  } else if (tile.t === 2) {
+    // Brick
+    ctx.fillStyle = L.brickColor;
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.strokeRect(px, py, TILE, TILE);
+    ctx.strokeRect(px, py, TILE/2, TILE/2);
+    ctx.strokeRect(px + TILE/2, py + TILE/2, TILE/2, TILE/2);
+  } else if (tile.t === 3) {
+    // Question block
+    const hit = questionHit.has(`${tile.x},${tile.y}`);
+    ctx.fillStyle = hit ? '#888' : '#FFB800';
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.strokeRect(px, py, TILE, TILE);
+    if (!hit) {
+      ctx.fillStyle = '#FFF';
+      ctx.font = 'bold 18px monospace';
+      ctx.fillText('?', px + 10, py + 24);
+    }
+  }
+}
+
+function drawCoin(coin) {
+  const px = Math.round(coin.x - cameraX);
+  const py = Math.round(coin.y + Math.sin(coin.bobOffset + Date.now() * 0.004) * 3);
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath();
+  ctx.arc(px + 8, py + 8, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#FFA500';
+  ctx.beginPath();
+  ctx.arc(px + 8, py + 8, 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawFlag() {
+  const px = Math.round(flagPos.x - cameraX);
+  const py = Math.round(flagPos.y);
+  // Pole
+  ctx.fillStyle = '#888';
+  ctx.fillRect(px + 14, py, 4, TILE * 11);
+  // Ball on top
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath();
+  ctx.arc(px + 16, py, 6, 0, Math.PI * 2);
+  ctx.fill();
+  // Flag
+  ctx.fillStyle = '#E84040';
+  ctx.beginPath();
+  ctx.moveTo(px + 18, py + 4);
+  ctx.lineTo(px + 46, py + 16);
+  ctx.lineTo(px + 18, py + 28);
+  ctx.fill();
+  // Claw symbol on flag
+  ctx.fillStyle = '#FFF';
+  ctx.font = '12px monospace';
+  ctx.fillText('🦀', px + 22, py + 21);
+}
+
+function drawClouds() {
+  const L = LEVELS[level - 1];
+  ctx.fillStyle = L.bg === '#1a1a2e' ? 'rgba(100,100,150,0.3)' : 'rgba(255,255,255,0.8)';
+  for (let i = 0; i < 8; i++) {
+    const cx = ((i * 300 + 50) - cameraX * 0.3) % (canvas.width + 200);
+    const cy = 40 + (i % 3) * 35;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 25, 0, Math.PI * 2);
+    ctx.arc(cx + 25, cy - 5, 20, 0, Math.PI * 2);
+    ctx.arc(cx + 50, cy, 25, 0, Math.PI * 2);
+    ctx.arc(cx + 25, cy + 5, 22, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawHills() {
+  const L = LEVELS[level - 1];
+  ctx.fillStyle = L.bg === '#1a1a2e' ? '#2a2a4e' : '#5a9a30';
+  for (let i = 0; i < 6; i++) {
+    const hx = ((i * 400) - cameraX * 0.2) % (canvas.width + 500);
+    const hw = 150 + (i % 2) * 80;
+    const hh = 60 + (i % 3) * 30;
+    ctx.beginPath();
+    ctx.arc(hx + hw/2, canvas.height - 64, hw/2, Math.PI, 0);
+    ctx.fill();
+  }
+}
+
+// --- TITLE SCREEN ---
+function drawTitle() {
+  // Sky
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, '#2848a8');
+  grad.addColorStop(1, '#6185f8');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawClouds();
+
+  // Ground
+  ctx.fillStyle = '#5a8a20';
+  ctx.fillRect(0, canvas.height - 64, canvas.width, 64);
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+  // Title
+  ctx.save();
+  ctx.fillStyle = '#FFF';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 4;
+  ctx.font = 'bold 52px monospace';
+  ctx.textAlign = 'center';
+  ctx.strokeText('SUPER MARIO CLAW', canvas.width/2, 140);
+  ctx.fillText('SUPER MARIO CLAW', canvas.width/2, 140);
+
+  // Crab mascot
+  ctx.font = '64px serif';
+  ctx.fillText('🦀', canvas.width/2, 230);
+
+  // Subtitle
+  ctx.font = '18px monospace';
+  ctx.fillStyle = '#FFD700';
+  ctx.fillText('A Crustacean Adventure', canvas.width/2, 270);
+
+  // Blink "Press Enter"
+  titleBlink++;
+  if (Math.floor(titleBlink / 30) % 2 === 0) {
+    ctx.fillStyle = '#FFF';
+    ctx.font = '20px monospace';
+    ctx.fillText('PRESS ENTER TO START', canvas.width/2, 350);
+  }
+
+  // Controls
+  ctx.fillStyle = '#AAA';
+  ctx.font = '14px monospace';
+  ctx.fillText('← → MOVE    SPACE JUMP', canvas.width/2, 420);
+
+  ctx.restore();
+}
+
+// --- GAME OVER SCREEN ---
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#E84040';
+  ctx.font = 'bold 48px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('GAME OVER', canvas.width/2, 200);
+  ctx.fillStyle = '#FFF';
+  ctx.font = '24px monospace';
+  ctx.fillText(`FINAL SCORE: ${score}`, canvas.width/2, 270);
+  ctx.fillText(`COINS: ${coins}`, canvas.width/2, 310);
+  if (Math.floor(titleBlink / 30) % 2 === 0) {
+    ctx.fillText('PRESS ENTER TO RETRY', canvas.width/2, 390);
+  }
+  titleBlink++;
+}
+
+// --- WIN SCREEN ---
+function drawWin() {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 42px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('LEVEL COMPLETE!', canvas.width/2, 180);
+  ctx.font = '64px serif';
+  ctx.fillText('🦀🎉🦀', canvas.width/2, 260);
+  ctx.fillStyle = '#FFF';
+  ctx.font = '24px monospace';
+  ctx.fillText(`SCORE: ${score}`, canvas.width/2, 320);
+  winTimer++;
+  if (winTimer > 120) {
+    if (level < LEVELS.length) {
+      if (Math.floor(winTimer / 30) % 2 === 0) {
+        ctx.fillText('PRESS ENTER FOR NEXT LEVEL', canvas.width/2, 400);
+      }
+    } else {
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 28px monospace';
+      ctx.fillText('YOU SAVED THE CRABS!', canvas.width/2, 380);
+      if (Math.floor(winTimer / 30) % 2 === 0) {
+        ctx.fillStyle = '#FFF';
+        ctx.font = '20px monospace';
+        ctx.fillText('PRESS ENTER TO PLAY AGAIN', canvas.width/2, 430);
+      }
+    }
+  }
+}
+
+// --- HUD ---
+function drawHUD() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(0, 0, canvas.width, 36);
+  ctx.fillStyle = '#FFF';
+  ctx.font = 'bold 16px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`KLOD`, 16, 24);
+  ctx.fillText(`SCORE: ${score}`, 120, 24);
+  ctx.fillStyle = '#FFD700';
+  ctx.fillText(`🪙 ${coins}`, 340, 24);
+  ctx.fillStyle = '#FFF';
+  ctx.fillText(`WORLD ${level}-1`, 480, 24);
+  ctx.fillText(`❤️ ${lives}`, 680, 24);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+// --- UPDATE ---
+function update() {
+  if (gameState === 'title') {
+    if (keys['Enter']) {
+      gameState = 'playing';
+      lives = 3;
+      score = 0;
+      coins = 0;
+      level = 1;
+      loadLevel(1);
+      keys['Enter'] = false;
+    }
+    return;
+  }
+
+  if (gameState === 'gameover') {
+    if (keys['Enter']) {
+      gameState = 'title';
+      keys['Enter'] = false;
+    }
+    return;
+  }
+
+  if (gameState === 'win') {
+    winTimer++;
+    if (keys['Enter'] && winTimer > 120) {
+      if (level < LEVELS.length) {
+        level++;
+        loadLevel(level);
+        gameState = 'playing';
+      } else {
+        gameState = 'title';
+      }
+      keys['Enter'] = false;
+    }
+    return;
+  }
+
+  if (gameState === 'dead') {
+    deathTimer++;
+    player.vy += GRAVITY;
+    player.y += player.vy;
+    if (deathTimer > 90) {
+      lives--;
+      if (lives <= 0) {
+        gameState = 'gameover';
+        titleBlink = 0;
+      } else {
+        loadLevel(level);
+        gameState = 'playing';
+      }
+    }
+    return;
+  }
+
+  // Player movement
+  const speed = 0.5;
+  const maxSpeed = 4.5;
+  if (keys['ArrowLeft'] || keys['KeyA']) {
+    player.vx -= speed;
+    player.facing = -1;
+  }
+  if (keys['ArrowRight'] || keys['KeyD']) {
+    player.vx += speed;
+    player.facing = 1;
+  }
+  if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && player.onGround) {
+    player.vy = -11;
+    sfxJump();
+  }
+
+  player.vx = Math.max(-maxSpeed, Math.min(maxSpeed, player.vx));
+  if (!keys['ArrowLeft'] && !keys['ArrowRight'] && !keys['KeyA'] && !keys['KeyD']) {
+    player.vx *= FRICTION;
+    if (Math.abs(player.vx) < 0.1) player.vx = 0;
+  }
+
+  player.vy += GRAVITY;
+  if (player.vy > 12) player.vy = 12;
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Keep in bounds
+  if (player.x < 0) { player.x = 0; player.vx = 0; }
+
+  worldCollide(player);
+
+  // Animation
+  if (Math.abs(player.vx) > 0.5) {
+    player.frameTimer++;
+    if (player.frameTimer > 5) {
+      player.frame++;
+      player.frameTimer = 0;
+    }
+  } else {
+    player.frame = 0;
+  }
+
+  if (player.invincible > 0) player.invincible--;
+
+  // Camera
+  const targetCam = player.x - canvas.width / 3;
+  const maxCam = LEVELS[level - 1].width * TILE - canvas.width;
+  cameraX += (targetCam - cameraX) * 0.1;
+  cameraX = Math.max(0, Math.min(maxCam, cameraX));
+
+  // Coins
+  for (const coin of coinList) {
+    if (coin.collected) continue;
+    if (player.x + player.width > coin.x && player.x < coin.x + coin.w &&
+        player.y + player.height > coin.y && player.y < coin.y + coin.h) {
+      coin.collected = true;
+      coins++;
+      score += 50;
+      sfxCoin();
+      floatTexts.push({x: coin.x, y: coin.y - 10, text: '+50', timer: 30, vy: -1.5});
+    }
+  }
+
+  // Crabs
+  for (const crab of crabList) {
+    if (!crab.alive) {
+      if (crab.squishTimer > 0) crab.squishTimer--;
+      continue;
+    }
+    crab.frame++;
+
+    // Crab movement
+    crab.x += crab.vx;
+    // Simple ground check for crabs
+    const crabTileBelow = isSolid(Math.floor((crab.x + 14) / TILE), Math.floor((crab.y + crab.h) / TILE));
+    if (!crabTileBelow) {
+      // Check if at edge, reverse
+      // Actually let them keep going on ground
+    }
+    // Wall collision for crabs
+    const crabTileLeft = isSolid(Math.floor(crab.x / TILE), Math.floor((crab.y + 12) / TILE));
+    const crabTileRight = isSolid(Math.floor((crab.x + crab.w) / TILE), Math.floor((crab.y + 12) / TILE));
+    if (crabTileLeft && crab.vx < 0) crab.vx = Math.abs(crab.vx);
+    if (crabTileRight && crab.vx > 0) crab.vx = -Math.abs(crab.vx);
+
+    // Player collision
+    if (player.invincible <= 0 || true) {
+      const px = player.x, py = player.y, pw = player.width, ph = player.height;
+      if (px + pw > crab.x && px < crab.x + crab.w && py + ph > crab.y && py < crab.y + crab.h) {
+        // Check if stomping (player falling and feet above crab middle)
+        if (player.vy > 0 && py + ph - 8 < crab.y + crab.h / 2) {
+          // Stomp!
+          crab.alive = false;
+          crab.squishTimer = 30;
+          player.vy = -8;
+          score += 200;
+          sfxStomp();
+          floatTexts.push({x: crab.x, y: crab.y - 10, text: '+200', timer: 40, vy: -1.5});
+          for (let i = 0; i < 6; i++) {
+            particles.push({x: crab.x+14, y: crab.y+12, vx: (Math.random()-0.5)*4, vy: -Math.random()*3-1, life: 25, color: '#F66', size: 3});
+          }
+        } else if (player.invincible <= 0) {
+          // Hit by crab
+          playerDie();
+        }
+      }
+    }
+  }
+
+  // Flag
+  if (player.x + player.width > flagPos.x && player.x < flagPos.x + TILE) {
+    gameState = 'win';
+    winTimer = 0;
+    score += 1000;
+    sfxWin();
+  }
+
+  // Fall off screen
+  if (player.y > ROWS * TILE + 100) {
+    playerDie();
+  }
+
+  // Particles
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.15;
+    p.life--;
+  }
+  particles = particles.filter(p => p.life > 0);
+
+  // Float texts
+  for (const ft of floatTexts) {
+    ft.y += ft.vy;
+    ft.timer--;
+  }
+  floatTexts = floatTexts.filter(ft => ft.timer > 0);
+}
+
+function playerDie() {
+  if (gameState === 'dead') return;
+  gameState = 'dead';
+  player.vy = -10;
+  deathTimer = 0;
+  sfxDie();
+}
+
+// --- RENDER ---
+function render() {
+  const L = LEVELS[Math.min(level, LEVELS.length) - 1];
+
+  if (gameState === 'title') {
+    drawTitle();
+    return;
+  }
+
+  if (gameState === 'gameover') {
+    drawGameOver();
+    return;
+  }
+
+  // Sky
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  if (L.bg === '#1a1a2e') {
+    grad.addColorStop(0, '#0a0a1e');
+    grad.addColorStop(1, '#1a1a2e');
+  } else {
+    grad.addColorStop(0, '#2848a8');
+    grad.addColorStop(1, L.bg);
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawClouds();
+  drawHills();
+
+  // Tiles
+  for (const tile of levelTiles) {
+    drawTile(tile);
+  }
+
+  // Coins
+  for (const coin of coinList) {
+    if (!coin.collected) drawCoin(coin);
+  }
+
+  // Crabs
+  for (const crab of crabList) {
+    if (crab.alive || crab.squishTimer > 0) drawCrab(crab);
+  }
+
+  // Flag
+  drawFlag();
+
+  // Player
+  if (gameState !== 'dead' || deathTimer < 90) {
+    drawPixelChar(player.x, player.y, player.facing, player.frame);
+  }
+
+  // Particles
+  for (const p of particles) {
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life / 30;
+    ctx.fillRect(p.x - cameraX, p.y, p.size, p.size);
+    ctx.globalAlpha = 1;
+  }
+
+  // Float texts
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'center';
+  for (const ft of floatTexts) {
+    ctx.fillStyle = '#FFF';
+    ctx.globalAlpha = ft.timer / 40;
+    ctx.fillText(ft.text, ft.x - cameraX + 16, ft.y);
+    ctx.globalAlpha = 1;
+  }
+
+  drawHUD();
+
+  if (gameState === 'win') drawWin();
+}
+
+// --- GAME LOOP ---
+function gameLoop() {
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
