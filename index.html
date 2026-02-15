@@ -116,9 +116,8 @@ const LEVELS = [
       {x:92.5,y:5},{x:99,y:7}
     ],
     crabs: [
-      {x:12,y:12},{x:20,y:12},{x:28,y:12},{x:34,y:12},
-      {x:42,y:12},{x:48,y:12},{x:53,y:12},{x:62,y:12},
-      {x:68,y:12},{x:73,y:12},{x:83,y:12},{x:90,y:12},{x:96,y:12}
+      {x:15,y:12},{x:34,y:12},{x:48,y:12},
+      {x:62,y:12},{x:78,y:12},{x:90,y:12}
     ],
     flag: {x: 115, y: 3},
     playerStart: {x: 2, y: 12}
@@ -165,10 +164,8 @@ const LEVELS = [
       {x:101,y:6},{x:107.5,y:7}
     ],
     crabs: [
-      {x:8,y:12},{x:15,y:12},{x:22,y:12},{x:33,y:12},
-      {x:40,y:12},{x:52,y:12},{x:58,y:12},{x:63,y:12},
-      {x:74,y:12},{x:80,y:12},{x:86,y:12},{x:97,y:12},
-      {x:105,y:12},{x:117,y:12}
+      {x:12,y:12},{x:30,y:12},{x:52,y:12},
+      {x:74,y:12},{x:97,y:12},{x:115,y:12}
     ],
     flag: {x: 130, y: 3},
     playerStart: {x: 2, y: 12}
@@ -198,7 +195,7 @@ function loadLevel(n) {
     levelTiles.push({...p});
   }
   coinList = L.coins.map(c => ({x: c.x * TILE + 8, y: c.y * TILE + 4, w: 16, h: 16, collected: false, bobOffset: Math.random() * Math.PI * 2}));
-  crabList = L.crabs.map(c => ({x: c.x * TILE, y: c.y * TILE, w: 28, h: 24, vx: -1.2, alive: true, frame: 0, frameTimer: 0, squishTimer: 0}));
+  crabList = L.crabs.map(c => ({x: c.x * TILE, y: c.y * TILE, w: 28, h: 24, vx: (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.8), alive: true, frame: 0, frameTimer: 0, squishTimer: 0}));
   flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
   player.x = L.playerStart.x * TILE;
   player.y = L.playerStart.y * TILE;
@@ -532,7 +529,7 @@ function drawTitle() {
   // Controls
   ctx.fillStyle = '#AAA';
   ctx.font = '14px monospace';
-  ctx.fillText('← → MOVE    SPACE JUMP', canvas.width/2, 420);
+  ctx.fillText('← → MOVE    SPACE JUMP    SHIFT RUN', canvas.width/2, 420);
 
   ctx.restore();
 }
@@ -673,11 +670,14 @@ function update() {
     player.facing = 1;
   }
   if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && player.onGround) {
-    player.vy = -11;
+    player.vy = -13.5;
     sfxJump();
   }
 
-  player.vx = Math.max(-maxSpeed, Math.min(maxSpeed, player.vx));
+  // Sprint with Shift
+  const sprinting = keys['ShiftLeft'] || keys['ShiftRight'];
+  const currentMax = sprinting ? 7.5 : maxSpeed;
+  player.vx = Math.max(-currentMax, Math.min(currentMax, player.vx));
   if (!keys['ArrowLeft'] && !keys['ArrowRight'] && !keys['KeyA'] && !keys['KeyD']) {
     player.vx *= FRICTION;
     if (Math.abs(player.vx) < 0.1) player.vx = 0;
