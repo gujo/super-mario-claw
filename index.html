@@ -142,13 +142,43 @@ function spawnPowerup(tx, ty, type) {
 
 // --- LASERS ---
 let lasers = [];
-function sfxLaser() { playSound(1200, 0.08, 'sawtooth', 0.12); setTimeout(() => playSound(800, 0.06, 'sawtooth', 0.08), 40); }
+function sfxLaser() {
+  ensureAudio();
+  // Space laser pew pew
+  const now = audioCtx.currentTime;
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const gain1 = audioCtx.createGain();
+  const gain2 = audioCtx.createGain();
+  osc1.type = 'sawtooth';
+  osc2.type = 'square';
+  osc1.frequency.setValueAtTime(2000, now);
+  osc1.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+  osc2.frequency.setValueAtTime(1500, now);
+  osc2.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+  gain1.gain.setValueAtTime(0.15, now);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+  gain2.gain.setValueAtTime(0.08, now);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+  osc1.connect(gain1); gain1.connect(audioCtx.destination);
+  osc2.connect(gain2); gain2.connect(audioCtx.destination);
+  osc1.start(now); osc1.stop(now + 0.15);
+  osc2.start(now + 0.03); osc2.stop(now + 0.2);
+}
 function sfxOneUp() { playSound(330, 0.1); setTimeout(() => playSound(440, 0.1), 80); setTimeout(() => playSound(550, 0.1), 160); setTimeout(() => playSound(660, 0.15), 240); }
 
 // --- INPUT ---
 const keys = {};
-window.addEventListener('keydown', e => { keys[e.code] = true; ensureAudio(); });
-window.addEventListener('keyup', e => { keys[e.code] = false; });
+const gameKeys = new Set(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyA','KeyD','KeyW','KeyS','KeyX','KeyZ','ShiftLeft','ShiftRight','ControlLeft','ControlRight','Enter']);
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (gameKeys.has(e.code)) e.preventDefault();
+  ensureAudio();
+});
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
+  if (gameKeys.has(e.code)) e.preventDefault();
+});
 
 // --- GAME STATE ---
 let gameState = 'title'; // title, playing, dead, win, gameover
@@ -211,6 +241,7 @@ const LEVELS = [
       {x:15,y:12},{x:34,y:12},{x:48,y:12},
       {x:62,y:12},{x:78,y:12},{x:90,y:12}
     ],
+    seagulls: [{x:25,y:3},{x:55,y:2},{x:85,y:4}],
     flag: {x: 115, y: 3},
     playerStart: {x: 2, y: 12}
   },
@@ -259,6 +290,8 @@ const LEVELS = [
       {x:12,y:12},{x:30,y:12},{x:52,y:12},
       {x:74,y:12},{x:97,y:12},{x:115,y:12}
     ],
+    urchins: [{x:42,y:12},{x:70,y:12},{x:100,y:12}],
+    seagulls: [{x:20,y:2},{x:60,y:3},{x:90,y:2},{x:110,y:4}],
     flag: {x: 130, y: 3},
     playerStart: {x: 2, y: 12}
   },
@@ -311,11 +344,103 @@ const LEVELS = [
       {x:97,y:4},{x:110,y:8},{x:120,y:4},{x:121,y:4}
     ],
     crabs: [
-      {x:12,y:12},{x:24,y:12},{x:38,y:12},{x:48,y:12},
-      {x:64,y:12},{x:75,y:12},{x:88,y:12},{x:98,y:12},
-      {x:113,y:12},{x:128,y:12}
+      {x:12,y:12},{x:38,y:12},{x:64,y:12},
+      {x:88,y:12},{x:113,y:12},{x:128,y:12}
     ],
+    jellyfish: [{x:20,y:6},{x:42,y:5},{x:58,y:7},{x:78,y:4},{x:95,y:6},{x:118,y:5}],
+    urchins: [{x:35,y:12},{x:70,y:12},{x:102,y:12},{x:125,y:12}],
     flag: {x: 140, y: 3},
+    playerStart: {x: 2, y: 12}
+  },
+  // Level 4 — SPACE
+  {
+    width: 160,
+    bg: '#050510',
+    groundColor: '#333355',
+    brickColor: '#444466',
+    space: true,
+    platforms: [
+      ...Array.from({length: 160}, (_, i) => {
+        if ((i >= 20 && i <= 24) || (i >= 40 && i <= 45) || (i >= 65 && i <= 70) || (i >= 90 && i <= 95) || (i >= 115 && i <= 119)) return null;
+        return {x: i, y: 14, t: 1};
+      }).filter(Boolean),
+      ...Array.from({length: 160}, (_, i) => {
+        if ((i >= 20 && i <= 24) || (i >= 40 && i <= 45) || (i >= 65 && i <= 70) || (i >= 90 && i <= 95) || (i >= 115 && i <= 119)) return null;
+        return {x: i, y: 13, t: 1};
+      }).filter(Boolean),
+      {x:10,y:10,t:2},{x:11,y:10,t:3},{x:12,y:10,t:2},
+      {x:17,y:7,t:2},{x:18,y:7,t:3},{x:19,y:7,t:2},
+      {x:25,y:10,t:2},{x:26,y:10,t:2},{x:27,y:10,t:3},
+      {x:32,y:8,t:2},{x:33,y:8,t:2},
+      {x:38,y:5,t:3},{x:39,y:5,t:2},
+      {x:46,y:10,t:2},{x:47,y:10,t:2},{x:48,y:10,t:3},
+      {x:53,y:7,t:2},{x:54,y:7,t:3},{x:55,y:7,t:2},
+      {x:60,y:10,t:2},{x:61,y:10,t:2},
+      {x:71,y:10,t:2},{x:72,y:10,t:3},{x:73,y:10,t:2},
+      {x:78,y:7,t:2},{x:79,y:7,t:2},{x:80,y:7,t:3},
+      {x:85,y:5,t:3},{x:86,y:5,t:2},
+      {x:96,y:10,t:2},{x:97,y:10,t:2},{x:98,y:10,t:3},
+      {x:103,y:8,t:2},{x:104,y:8,t:3},
+      {x:108,y:6,t:2},{x:109,y:6,t:2},
+      {x:120,y:10,t:2},{x:121,y:10,t:3},{x:122,y:10,t:2},
+      {x:126,y:7,t:2},{x:127,y:7,t:2},
+      {x:132,y:9,t:2},{x:133,y:9,t:3},
+      {x:138,y:12,t:1},{x:139,y:12,t:1},{x:139,y:11,t:1},
+      {x:140,y:12,t:1},{x:140,y:11,t:1},{x:140,y:10,t:1},
+      {x:141,y:12,t:1},{x:141,y:11,t:1},{x:141,y:10,t:1},{x:141,y:9,t:1},
+    ],
+    coins: [
+      {x:11,y:9},{x:18,y:5},{x:27,y:8},{x:33,y:6},{x:38,y:3},
+      {x:47,y:8},{x:54,y:5},{x:72,y:8},{x:79,y:5},{x:85,y:3},
+      {x:97,y:8},{x:104,y:6},{x:109,y:4},{x:121,y:8},{x:127,y:5},{x:133,y:7}
+    ],
+    crabs: [{x:15,y:12},{x:35,y:12},{x:57,y:12},{x:82,y:12},{x:100,y:12},{x:130,y:12}],
+    seagulls: [{x:28,y:2},{x:50,y:3},{x:75,y:2},{x:105,y:3},{x:125,y:2}],
+    urchins: [{x:55,y:12},{x:88,y:12},{x:112,y:12}],
+    flag: {x: 150, y: 3},
+    playerStart: {x: 2, y: 12}
+  },
+  // Level 5 — VOLCANO
+  {
+    width: 130,
+    bg: '#2a0a00',
+    groundColor: '#4a2a1a',
+    brickColor: '#6a3a2a',
+    volcano: true,
+    platforms: [
+      ...Array.from({length: 130}, (_, i) => {
+        if ((i >= 28 && i <= 31) || (i >= 50 && i <= 54) || (i >= 72 && i <= 75) || (i >= 95 && i <= 98)) return null;
+        return {x: i, y: 14, t: 1};
+      }).filter(Boolean),
+      ...Array.from({length: 130}, (_, i) => {
+        if ((i >= 28 && i <= 31) || (i >= 50 && i <= 54) || (i >= 72 && i <= 75) || (i >= 95 && i <= 98)) return null;
+        return {x: i, y: 13, t: 1};
+      }).filter(Boolean),
+      {x:8,y:10,t:2},{x:9,y:10,t:3},{x:10,y:10,t:2},
+      {x:15,y:8,t:2},{x:16,y:8,t:3},
+      {x:22,y:10,t:2},{x:23,y:10,t:2},{x:24,y:10,t:3},
+      {x:32,y:10,t:2},{x:33,y:10,t:2},
+      {x:37,y:7,t:3},{x:38,y:7,t:2},{x:39,y:7,t:2},
+      {x:44,y:10,t:2},{x:45,y:10,t:3},{x:46,y:10,t:2},
+      {x:55,y:10,t:2},{x:56,y:10,t:2},{x:57,y:10,t:3},
+      {x:62,y:7,t:2},{x:63,y:7,t:3},
+      {x:68,y:10,t:2},{x:69,y:10,t:2},
+      {x:76,y:10,t:2},{x:77,y:10,t:3},{x:78,y:10,t:2},
+      {x:83,y:8,t:2},{x:84,y:8,t:3},
+      {x:88,y:6,t:2},{x:89,y:6,t:2},
+      {x:99,y:10,t:2},{x:100,y:10,t:3},{x:101,y:10,t:2},
+      {x:106,y:12,t:1},{x:107,y:12,t:1},{x:107,y:11,t:1},
+      {x:108,y:12,t:1},{x:108,y:11,t:1},{x:108,y:10,t:1},
+      {x:109,y:12,t:1},{x:109,y:11,t:1},{x:109,y:10,t:1},{x:109,y:9,t:1},
+    ],
+    coins: [
+      {x:9,y:9},{x:16,y:6},{x:23,y:8},{x:37,y:5},{x:45,y:8},
+      {x:56,y:8},{x:63,y:5},{x:77,y:8},{x:84,y:6},{x:89,y:4},{x:100,y:8}
+    ],
+    crabs: [{x:12,y:12},{x:26,y:12},{x:42,y:12},{x:60,y:12},{x:80,y:12},{x:103,y:12}],
+    urchins: [{x:20,y:12},{x:48,y:12},{x:66,y:12},{x:92,y:12}],
+    seagulls: [{x:30,y:3},{x:55,y:2},{x:75,y:3},{x:95,y:2}],
+    flag: {x: 118, y: 3},
     playerStart: {x: 2, y: 12}
   }
 ];
@@ -335,6 +460,9 @@ let player = {
 let levelTiles = [];
 let coinList = [];
 let crabList = [];
+let jellyList = [];
+let urchinList = [];
+let seagullList = [];
 let flagPos = {};
 let questionHit = new Set();
 
@@ -346,6 +474,9 @@ function loadLevel(n) {
   }
   coinList = L.coins.map(c => ({x: c.x * TILE + 8, y: c.y * TILE + 4, w: 16, h: 16, collected: false, bobOffset: Math.random() * Math.PI * 2}));
   crabList = L.crabs.map(c => ({x: c.x * TILE, y: c.y * TILE, w: 28, h: 24, vx: (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.8), alive: true, frame: 0, frameTimer: 0, squishTimer: 0}));
+  jellyList = (L.jellyfish || []).map(j => ({x: j.x * TILE, y: j.y * TILE, baseY: j.y * TILE, w: 24, h: 24, alive: true, frame: 0, squishTimer: 0}));
+  urchinList = (L.urchins || []).map(u => ({x: u.x * TILE, y: u.y * TILE, w: 28, h: 24, frame: 0}));
+  seagullList = (L.seagulls || []).map(s => ({x: s.x * TILE, y: s.y * TILE, baseY: s.y * TILE, w: 30, h: 20, vx: -2, alive: true, frame: 0, squishTimer: 0}));
   powerups = [];
   lasers = [];
   player.starTimer = 0;
@@ -1008,27 +1139,104 @@ function update() {
     sfxLaser();
   }
 
-  // Update lasers
+  // Update lasers — hit all enemy types
+  function laserHitEnemy(laser, enemy, pts, color) {
+    enemy.alive = false;
+    enemy.squishTimer = 30;
+    laser.life = 0;
+    score += pts;
+    sfxStomp();
+    floatTexts.push({x: enemy.x, y: enemy.y - 10, text: `+${pts}`, timer: 40, vy: -1.5});
+    for (let i = 0; i < 6; i++) {
+      particles.push({x: enemy.x+14, y: enemy.y+12, vx: (Math.random()-0.5)*5, vy: -Math.random()*4-1, life: 25, color: color, size: 3});
+    }
+  }
   for (const laser of lasers) {
     laser.x += laser.vx;
     laser.life--;
     for (const crab of crabList) {
-      if (!crab.alive) continue;
-      if (laser.x + laser.w > crab.x && laser.x < crab.x + crab.w &&
-          laser.y + laser.h > crab.y && laser.y < crab.y + crab.h) {
-        crab.alive = false;
-        crab.squishTimer = 30;
-        laser.life = 0;
-        score += 250;
-        sfxStomp();
-        floatTexts.push({x: crab.x, y: crab.y - 10, text: '+250', timer: 40, vy: -1.5});
-        for (let i = 0; i < 6; i++) {
-          particles.push({x: crab.x+14, y: crab.y+12, vx: (Math.random()-0.5)*5, vy: -Math.random()*4-1, life: 25, color: '#0FF', size: 3});
-        }
+      if (!crab.alive || laser.life <= 0) continue;
+      if (laser.x + laser.w > crab.x && laser.x < crab.x + crab.w && laser.y + laser.h > crab.y && laser.y < crab.y + crab.h) {
+        laserHitEnemy(laser, crab, 250, '#F66');
+      }
+    }
+    for (const jelly of jellyList) {
+      if (!jelly.alive || laser.life <= 0) continue;
+      if (laser.x + laser.w > jelly.x && laser.x < jelly.x + jelly.w && laser.y + laser.h > jelly.y && laser.y < jelly.y + jelly.h) {
+        laserHitEnemy(laser, jelly, 300, '#C0F');
+      }
+    }
+    for (const gull of seagullList) {
+      if (!gull.alive || laser.life <= 0) continue;
+      if (laser.x + laser.w > gull.x && laser.x < gull.x + gull.w && laser.y + laser.h > gull.y && laser.y < gull.y + gull.h) {
+        laserHitEnemy(laser, gull, 350, '#FFF');
       }
     }
   }
   lasers = lasers.filter(l => l.life > 0);
+
+  // Update jellyfish
+  for (const jelly of jellyList) {
+    if (!jelly.alive) { if (jelly.squishTimer > 0) jelly.squishTimer--; continue; }
+    jelly.frame++;
+    jelly.y = jelly.baseY + Math.sin(jelly.frame * 0.03) * 40;
+    // Player collision
+    const px = player.x, py = player.y, pw = player.width, ph = player.height;
+    if (px + pw > jelly.x && px < jelly.x + jelly.w && py + ph > jelly.y && py < jelly.y + jelly.h) {
+      if (player.starTimer > 0) {
+        jelly.alive = false; jelly.squishTimer = 30; score += 300;
+        sfxStomp(); floatTexts.push({x:jelly.x,y:jelly.y-10,text:'+300',timer:40,vy:-1.5});
+      } else if (player.vy > 0 && py + ph - 8 < jelly.y + jelly.h/2) {
+        jelly.alive = false; jelly.squishTimer = 30; player.vy = -8; score += 200;
+        sfxStomp(); floatTexts.push({x:jelly.x,y:jelly.y-10,text:'+200',timer:40,vy:-1.5});
+      } else if (player.invincible <= 0) {
+        if (player.big) { player.big = false; player.invincible = 90; sfxDie(); }
+        else { playerDie(); }
+      }
+    }
+  }
+
+  // Update seagulls (fly horizontally, swoop up and down)
+  for (const gull of seagullList) {
+    if (!gull.alive) { if (gull.squishTimer > 0) gull.squishTimer--; continue; }
+    gull.frame++;
+    gull.x += gull.vx;
+    gull.y = gull.baseY + Math.sin(gull.frame * 0.04) * 25;
+    // Wrap around or reverse
+    if (gull.x < cameraX - 100) gull.vx = Math.abs(gull.vx);
+    if (gull.x > cameraX + canvas.width + 100) gull.vx = -Math.abs(gull.vx);
+    // Player collision
+    const px = player.x, py = player.y, pw = player.width, ph = player.height;
+    if (px + pw > gull.x && px < gull.x + gull.w && py + ph > gull.y && py < gull.y + gull.h) {
+      if (player.starTimer > 0) {
+        gull.alive = false; gull.squishTimer = 30; score += 350;
+        sfxStomp(); floatTexts.push({x:gull.x,y:gull.y-10,text:'+350',timer:40,vy:-1.5});
+      } else if (player.vy > 0 && py + ph - 8 < gull.y + gull.h/2) {
+        gull.alive = false; gull.squishTimer = 30; player.vy = -10; score += 300;
+        sfxStomp(); floatTexts.push({x:gull.x,y:gull.y-10,text:'+300',timer:40,vy:-1.5});
+      } else if (player.invincible <= 0) {
+        if (player.big) { player.big = false; player.invincible = 90; sfxDie(); }
+        else { playerDie(); }
+      }
+    }
+  }
+
+  // Update urchins (stationary hazard — can't be stomped)
+  for (const urchin of urchinList) {
+    urchin.frame++;
+    const px = player.x, py = player.y, pw = player.width, ph = player.height;
+    if (px + pw > urchin.x + 4 && px < urchin.x + urchin.w - 4 && py + ph > urchin.y + 4 && py < urchin.y + urchin.h) {
+      if (player.starTimer > 0) {
+        // Star can destroy urchins — they explode
+        urchin.x = -9999; score += 400;
+        sfxStomp(); floatTexts.push({x:urchin.x,y:urchin.y-10,text:'+400',timer:40,vy:-1.5});
+        for (let i = 0; i < 8; i++) particles.push({x:urchin.x+14,y:urchin.y+12,vx:(Math.random()-0.5)*6,vy:-Math.random()*5,life:30,color:'#A0A',size:4});
+      } else if (player.invincible <= 0) {
+        if (player.big) { player.big = false; player.invincible = 90; sfxDie(); }
+        else { playerDie(); }
+      }
+    }
+  }
 
   // Coins
   for (const coin of coinList) {
@@ -1172,7 +1380,64 @@ function render() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  if (L.underwater) {
+  if (L.space) {
+    // Stars in space
+    ctx.fillStyle = '#FFF';
+    for (let i = 0; i < 60; i++) {
+      const sx = ((i * 97 + 13) * 7) % canvas.width;
+      const sy = ((i * 53 + 7) * 11) % (canvas.height - 80);
+      const twinkle = Math.sin(Date.now() * 0.003 + i) * 0.4 + 0.6;
+      ctx.globalAlpha = twinkle;
+      ctx.fillRect(sx, sy, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
+    }
+    ctx.globalAlpha = 1;
+    // Distant planets
+    ctx.fillStyle = '#334';
+    ctx.beginPath();
+    ctx.arc(200 - cameraX * 0.05, 80, 35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#445';
+    ctx.beginPath();
+    ctx.arc(600 - cameraX * 0.03, 50, 20, 0, Math.PI * 2);
+    ctx.fill();
+    // Nebula glow
+    const nebG = ctx.createRadialGradient(400, 100, 10, 400, 100, 150);
+    nebG.addColorStop(0, 'rgba(100,0,200,0.08)');
+    nebG.addColorStop(1, 'rgba(0,0,50,0)');
+    ctx.fillStyle = nebG;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (L.volcano) {
+    // Volcano background — lava glow, floating embers
+    const lavaGlow = ctx.createLinearGradient(0, canvas.height - 100, 0, canvas.height);
+    lavaGlow.addColorStop(0, 'rgba(200,50,0,0)');
+    lavaGlow.addColorStop(1, 'rgba(200,50,0,0.3)');
+    ctx.fillStyle = lavaGlow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Embers floating up
+    ctx.fillStyle = '#F80';
+    for (let i = 0; i < 15; i++) {
+      const ex = (i * 120 + Math.sin(Date.now() * 0.001 + i * 3) * 30) % canvas.width;
+      const ey = canvas.height - ((Date.now() * 0.02 + i * 60) % (canvas.height + 30));
+      const es = 2 + Math.sin(i) * 1;
+      ctx.globalAlpha = 0.6 + Math.sin(Date.now() * 0.005 + i) * 0.3;
+      ctx.fillRect(ex, ey, es, es);
+    }
+    ctx.globalAlpha = 1;
+    // Distant volcano
+    ctx.fillStyle = '#1a0800';
+    ctx.beginPath();
+    ctx.moveTo(600 - cameraX * 0.1, canvas.height - 64);
+    ctx.lineTo(650 - cameraX * 0.1, 80);
+    ctx.lineTo(700 - cameraX * 0.1, canvas.height - 64);
+    ctx.fill();
+    // Lava drip from volcano top
+    ctx.fillStyle = '#F40';
+    ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.003) * 0.3;
+    ctx.beginPath();
+    ctx.arc(650 - cameraX * 0.1, 80, 8 + Math.sin(Date.now() * 0.005) * 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (L.underwater) {
     // Underwater background effects
     // Light rays
     ctx.save();
@@ -1228,6 +1493,115 @@ function render() {
   // Crabs
   for (const crab of crabList) {
     if (crab.alive || crab.squishTimer > 0) drawCrab(crab);
+  }
+
+  // Jellyfish
+  for (const jelly of jellyList) {
+    if (!jelly.alive && jelly.squishTimer <= 0) continue;
+    const jx = Math.round(jelly.x - cameraX);
+    const jy = Math.round(jelly.y);
+    if (jelly.squishTimer > 0 && !jelly.alive) {
+      ctx.fillStyle = '#808';
+      ctx.fillRect(jx + 2, jy + 16, 20, 6);
+    } else {
+      // Translucent dome
+      const pulse = Math.sin(jelly.frame * 0.06) * 0.2 + 0.8;
+      ctx.save();
+      ctx.globalAlpha = 0.7 * pulse;
+      ctx.fillStyle = '#C060F0';
+      ctx.beginPath();
+      ctx.arc(jx + 12, jy + 10, 12, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = '#D080FF';
+      ctx.fillRect(jx + 2, jy + 10, 20, 6);
+      // Tentacles
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = '#C060F0';
+      ctx.lineWidth = 2;
+      for (let t = 0; t < 4; t++) {
+        const tx = jx + 4 + t * 6;
+        ctx.beginPath();
+        ctx.moveTo(tx, jy + 16);
+        ctx.quadraticCurveTo(tx + Math.sin(jelly.frame*0.08+t)*3, jy + 22, tx + Math.sin(jelly.frame*0.05+t)*2, jy + 28);
+        ctx.stroke();
+      }
+      // Eyes
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#FFF';
+      ctx.fillRect(jx + 6, jy + 6, 4, 4);
+      ctx.fillRect(jx + 14, jy + 6, 4, 4);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(jx + 7, jy + 7, 2, 2);
+      ctx.fillRect(jx + 15, jy + 7, 2, 2);
+      ctx.restore();
+    }
+  }
+
+  // Seagulls
+  for (const gull of seagullList) {
+    if (!gull.alive && gull.squishTimer <= 0) continue;
+    const gx = Math.round(gull.x - cameraX);
+    const gy = Math.round(gull.y);
+    if (gull.squishTimer > 0 && !gull.alive) {
+      ctx.fillStyle = '#888';
+      ctx.fillRect(gx + 4, gy + 14, 22, 5);
+    } else {
+      const wingAngle = Math.sin(gull.frame * 0.12) * 0.4;
+      ctx.save();
+      // Body
+      ctx.fillStyle = '#EEE';
+      ctx.fillRect(gx + 8, gy + 8, 14, 8);
+      // Head
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.arc(gx + 24, gy + 8, 5, 0, Math.PI * 2);
+      ctx.fill();
+      // Beak
+      ctx.fillStyle = '#F80';
+      ctx.fillRect(gx + 28, gy + 7, 5, 3);
+      // Eye
+      ctx.fillStyle = '#000';
+      ctx.fillRect(gx + 25, gy + 6, 2, 2);
+      // Wings
+      ctx.fillStyle = '#DDD';
+      ctx.save();
+      ctx.translate(gx + 15, gy + 8);
+      ctx.rotate(-wingAngle);
+      ctx.fillRect(-12, -2, 12, 5);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(gx + 15, gy + 8);
+      ctx.rotate(wingAngle);
+      ctx.fillRect(-12, -2, 12, 5);
+      ctx.restore();
+      ctx.restore();
+    }
+  }
+
+  // Urchins
+  for (const urchin of urchinList) {
+    const ux = Math.round(urchin.x - cameraX);
+    const uy = Math.round(urchin.y);
+    if (ux < -TILE || ux > canvas.width + TILE) continue;
+    // Spiky ball
+    ctx.fillStyle = '#2a0040';
+    ctx.beginPath();
+    ctx.arc(ux + 14, uy + 12, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Spikes
+    ctx.strokeStyle = '#6a00a0';
+    ctx.lineWidth = 2;
+    for (let s = 0; s < 8; s++) {
+      const ang = (s / 8) * Math.PI * 2 + urchin.frame * 0.02;
+      ctx.beginPath();
+      ctx.moveTo(ux + 14 + Math.cos(ang) * 8, uy + 12 + Math.sin(ang) * 8);
+      ctx.lineTo(ux + 14 + Math.cos(ang) * 16, uy + 12 + Math.sin(ang) * 16);
+      ctx.stroke();
+    }
+    // Eyes
+    ctx.fillStyle = '#F00';
+    ctx.fillRect(ux + 10, uy + 9, 3, 3);
+    ctx.fillRect(ux + 16, uy + 9, 3, 3);
   }
 
   // Flag
