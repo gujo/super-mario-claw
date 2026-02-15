@@ -657,6 +657,19 @@ function drawPixelChar(x, y, facing, frame) {
   ctx.fillRect(px + 3, py + 28, 8, 4);
   ctx.fillRect(px + 13, py + 28, 8, 4);
 
+  // Laser arm glow when laser is active
+  if (player.laserTimer > 0) {
+    ctx.shadowColor = '#0FF';
+    ctx.shadowBlur = 8 + Math.sin(Date.now() * 0.01) * 4;
+    ctx.fillStyle = '#0FF';
+    if (player.facing > 0) {
+      ctx.fillRect(px + 18, py + 12, 6, 4);
+    } else {
+      ctx.fillRect(px, py + 12, 6, 4);
+    }
+    ctx.shadowBlur = 0;
+  }
+
   ctx.restore();
 }
 
@@ -927,8 +940,10 @@ function drawHUD() {
   ctx.fillStyle = '#FFF';
   ctx.fillText(`WORLD ${level}-1`, 480, 24);
   if (player.laserTimer > 0) {
-    ctx.fillStyle = '#0FF';
-    ctx.fillText(`⚡ ${Math.ceil(player.laserTimer / 60)}s`, 610, 24);
+    // Blinking laser HUD indicator
+    const blink = Math.floor(Date.now() / 300) % 2 === 0;
+    ctx.fillStyle = blink ? '#0FF' : '#FFF';
+    ctx.fillText(`⚡ X=SHOOT ${Math.ceil(player.laserTimer / 60)}s`, 560, 24);
   }
   ctx.fillStyle = '#FFF';
   ctx.fillText(`❤️ ${lives}`, 710, 24);
@@ -1108,7 +1123,7 @@ function update() {
         player.laserTimer = 600; // ~10 seconds
         score += 300;
         sfxPowerup();
-        floatTexts.push({x: pu.x, y: pu.y - 10, text: '🔫 LASER!', timer: 50, vy: -1.5});
+        floatTexts.push({x: pu.x, y: pu.y - 10, text: '⚡ LASER! Press X to shoot!', timer: 90, vy: -1});
       }
       const puColor = pu.type === 'oneup' ? '#0F0' : pu.type === 'laser' ? '#0FF' : pu.type === 'crab' ? '#F66' : '#FFD700';
       for (let i = 0; i < 8; i++) {
@@ -1131,10 +1146,19 @@ function update() {
   if (player.laserTimer > 0 && (keys['KeyX'] || keys['KeyZ'] || keys['ControlLeft'] || keys['ControlRight']) && player.laserCooldown <= 0) {
     lasers.push({
       x: player.x + (player.facing > 0 ? player.width : 0),
-      y: player.y + 14,
-      vx: player.facing * 10,
-      w: 16, h: 4, life: 60
+      y: player.y + 12,
+      vx: player.facing * 12,
+      w: 24, h: 6, life: 60
     });
+    // Muzzle flash particles
+    for (let i = 0; i < 4; i++) {
+      particles.push({
+        x: player.x + (player.facing > 0 ? player.width + 4 : -4),
+        y: player.y + 12 + (Math.random()-0.5)*8,
+        vx: player.facing * (Math.random()*3+1), vy: (Math.random()-0.5)*2,
+        life: 10, color: '#0FF', size: 3
+      });
+    }
     player.laserCooldown = 12;
     sfxLaser();
   }
@@ -1693,13 +1717,26 @@ function render() {
   for (const laser of lasers) {
     const lx = Math.round(laser.x - cameraX);
     const ly = Math.round(laser.y);
-    ctx.fillStyle = '#0FF';
+    // Outer glow
+    ctx.save();
     ctx.shadowColor = '#0FF';
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = 'rgba(0,255,255,0.4)';
+    ctx.fillRect(lx - 3, ly - 3, laser.w + 6, laser.h + 6);
+    // Core beam
+    ctx.fillStyle = '#0FF';
     ctx.fillRect(lx, ly, laser.w, laser.h);
+    // Hot center
     ctx.fillStyle = '#FFF';
-    ctx.fillRect(lx + 2, ly + 1, laser.w - 4, 2);
+    ctx.fillRect(lx + 3, ly + 1, laser.w - 6, laser.h - 2);
+    // Leading edge spark
+    const sparkX = laser.vx > 0 ? lx + laser.w : lx;
+    ctx.fillStyle = '#FFF';
+    ctx.beginPath();
+    ctx.arc(sparkX, ly + laser.h/2, 4 + Math.random()*2, 0, Math.PI*2);
+    ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.restore();
   }
 
   // Player
