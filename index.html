@@ -135,10 +135,15 @@ let powerups = [];
 function spawnPowerup(tx, ty, type) {
   powerups.push({
     x: tx * TILE + 4, y: ty * TILE - TILE,
-    w: 24, h: 24, type: type, // 'crab' or 'starfish'
+    w: 24, h: 24, type: type, // 'crab', 'starfish', 'oneup', or 'laser'
     vx: 1.5, vy: 0, active: true, emergeY: ty * TILE - TILE, emerging: true, startY: ty * TILE
   });
 }
+
+// --- LASERS ---
+let lasers = [];
+function sfxLaser() { playSound(1200, 0.08, 'sawtooth', 0.12); setTimeout(() => playSound(800, 0.06, 'sawtooth', 0.08), 40); }
+function sfxOneUp() { playSound(330, 0.1); setTimeout(() => playSound(440, 0.1), 80); setTimeout(() => playSound(550, 0.1), 160); setTimeout(() => playSound(660, 0.15), 240); }
 
 // --- INPUT ---
 const keys = {};
@@ -256,6 +261,62 @@ const LEVELS = [
     ],
     flag: {x: 130, y: 3},
     playerStart: {x: 2, y: 12}
+  },
+  // Level 3 — UNDERWATER
+  {
+    width: 150,
+    bg: '#0a2a4a',
+    groundColor: '#2a5a3a',
+    brickColor: '#1a4a5a',
+    underwater: true,
+    platforms: [
+      // Sandy ocean floor with gaps (trenches)
+      ...Array.from({length: 150}, (_, i) => {
+        if ((i >= 30 && i <= 33) || (i >= 55 && i <= 59) || (i >= 80 && i <= 83) || (i >= 105 && i <= 108)) return null;
+        return {x: i, y: 14, t: 1};
+      }).filter(Boolean),
+      ...Array.from({length: 150}, (_, i) => {
+        if ((i >= 30 && i <= 33) || (i >= 55 && i <= 59) || (i >= 80 && i <= 83) || (i >= 105 && i <= 108)) return null;
+        return {x: i, y: 13, t: 1};
+      }).filter(Boolean),
+      // Coral platforms
+      {x:8,y:10,t:2},{x:9,y:10,t:3},{x:10,y:10,t:2},
+      {x:15,y:8,t:2},{x:16,y:8,t:2},{x:17,y:8,t:3},
+      {x:22,y:10,t:2},{x:23,y:10,t:2},
+      {x:26,y:6,t:3},{x:27,y:6,t:2},
+      {x:34,y:10,t:2},{x:35,y:10,t:2},{x:36,y:10,t:3},
+      {x:40,y:8,t:2},{x:41,y:8,t:2},
+      {x:45,y:6,t:3},{x:46,y:6,t:2},{x:47,y:6,t:2},
+      {x:50,y:10,t:2},{x:51,y:10,t:3},{x:52,y:10,t:2},
+      {x:60,y:10,t:2},{x:61,y:10,t:2},{x:62,y:10,t:3},
+      {x:66,y:7,t:2},{x:67,y:7,t:2},{x:68,y:7,t:3},
+      {x:72,y:10,t:2},{x:73,y:10,t:2},
+      {x:76,y:5,t:3},{x:77,y:5,t:2},
+      {x:84,y:10,t:2},{x:85,y:10,t:3},{x:86,y:10,t:2},
+      {x:90,y:8,t:2},{x:91,y:8,t:2},{x:92,y:8,t:3},
+      {x:96,y:6,t:2},{x:97,y:6,t:3},
+      {x:100,y:10,t:2},{x:101,y:10,t:2},
+      {x:109,y:10,t:2},{x:110,y:10,t:3},{x:111,y:10,t:2},
+      {x:115,y:8,t:2},{x:116,y:8,t:2},
+      {x:120,y:6,t:3},{x:121,y:6,t:2},
+      {x:125,y:10,t:2},{x:126,y:10,t:2},
+      {x:130,y:12,t:1},{x:131,y:12,t:1},{x:131,y:11,t:1},
+      {x:132,y:12,t:1},{x:132,y:11,t:1},{x:132,y:10,t:1},
+      {x:133,y:12,t:1},{x:133,y:11,t:1},{x:133,y:10,t:1},{x:133,y:9,t:1},
+    ],
+    coins: [
+      {x:9,y:9},{x:16,y:6},{x:17,y:6},{x:26,y:4},{x:36,y:8},
+      {x:41,y:6},{x:45,y:4},{x:46,y:4},{x:51,y:8},{x:61,y:8},
+      {x:67,y:5},{x:68,y:5},{x:76,y:3},{x:85,y:8},{x:91,y:6},
+      {x:97,y:4},{x:110,y:8},{x:120,y:4},{x:121,y:4}
+    ],
+    crabs: [
+      {x:12,y:12},{x:24,y:12},{x:38,y:12},{x:48,y:12},
+      {x:64,y:12},{x:75,y:12},{x:88,y:12},{x:98,y:12},
+      {x:113,y:12},{x:128,y:12}
+    ],
+    flag: {x: 140, y: 3},
+    playerStart: {x: 2, y: 12}
   }
 ];
 
@@ -266,7 +327,8 @@ let player = {
   onGround: false, facing: 1,
   frame: 0, frameTimer: 0,
   invincible: 0, big: false,
-  starTimer: 0, starFlash: 0
+  starTimer: 0, starFlash: 0,
+  laserTimer: 0, laserCooldown: 0
 };
 
 // --- ENTITIES ---
@@ -285,15 +347,20 @@ function loadLevel(n) {
   coinList = L.coins.map(c => ({x: c.x * TILE + 8, y: c.y * TILE + 4, w: 16, h: 16, collected: false, bobOffset: Math.random() * Math.PI * 2}));
   crabList = L.crabs.map(c => ({x: c.x * TILE, y: c.y * TILE, w: 28, h: 24, vx: (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.8), alive: true, frame: 0, frameTimer: 0, squishTimer: 0}));
   powerups = [];
+  lasers = [];
   player.starTimer = 0;
   player.big = false;
+  player.laserTimer = 0;
+  player.laserCooldown = 0;
 
   // Assign powerups to certain question blocks
   const qBlocks = levelTiles.filter(t => t.t === 3);
   if (qBlocks.length >= 2) {
-    qBlocks[0].powerup = 'crab';       // First ? block = crab mushroom
-    qBlocks[Math.floor(qBlocks.length / 2)].powerup = 'starfish'; // Middle ? = starfish
-    if (qBlocks.length >= 4) qBlocks[3].powerup = 'crab';  // Another crab powerup
+    qBlocks[0].powerup = 'crab';
+    qBlocks[Math.floor(qBlocks.length / 2)].powerup = 'starfish';
+    if (qBlocks.length >= 3) qBlocks[2].powerup = 'laser';
+    if (qBlocks.length >= 4) qBlocks[3].powerup = 'oneup';
+    if (qBlocks.length >= 5) qBlocks[qBlocks.length - 1].powerup = 'crab';
   }
   flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
   player.x = L.playerStart.x * TILE;
@@ -659,7 +726,7 @@ function drawTitle() {
   // Controls
   ctx.fillStyle = '#AAA';
   ctx.font = '14px monospace';
-  ctx.fillText('← → MOVE    SPACE JUMP    SHIFT RUN', canvas.width/2, 420);
+  ctx.fillText('← → MOVE   SPACE JUMP   SHIFT RUN   X LASER', canvas.width/2, 420);
 
   ctx.restore();
 }
@@ -728,7 +795,12 @@ function drawHUD() {
   ctx.fillText(`🪙 ${coins}`, 340, 24);
   ctx.fillStyle = '#FFF';
   ctx.fillText(`WORLD ${level}-1`, 480, 24);
-  ctx.fillText(`❤️ ${lives}`, 680, 24);
+  if (player.laserTimer > 0) {
+    ctx.fillStyle = '#0FF';
+    ctx.fillText(`⚡ ${Math.ceil(player.laserTimer / 60)}s`, 610, 24);
+  }
+  ctx.fillStyle = '#FFF';
+  ctx.fillText(`❤️ ${lives}`, 710, 24);
   ctx.textAlign = 'left';
   ctx.restore();
 }
@@ -793,8 +865,9 @@ function update() {
   }
 
   // Player movement
-  const speed = 0.5;
-  const maxSpeed = 4.5;
+  const isUnderwater = LEVELS[level - 1].underwater;
+  const speed = isUnderwater ? 0.35 : 0.5;
+  const maxSpeed = isUnderwater ? 3.5 : 4.5;
   if (keys['ArrowLeft'] || keys['KeyA']) {
     player.vx -= speed;
     player.facing = -1;
@@ -803,22 +876,35 @@ function update() {
     player.vx += speed;
     player.facing = 1;
   }
-  if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && player.onGround) {
-    player.vy = -13.5;
-    sfxJump();
+  if (isUnderwater) {
+    // Underwater: press Space to swim upward (repeatable)
+    if (keys['Space'] || keys['ArrowUp'] || keys['KeyW']) {
+      player.vy = Math.max(player.vy - 1.2, -5);
+      if (Math.random() < 0.3) {
+        particles.push({x: player.x + 12, y: player.y + 30, vx: (Math.random()-0.5)*0.5, vy: -Math.random()*2-1, life: 30, color: 'rgba(150,200,255,0.6)', size: Math.random()*4+2});
+      }
+    }
+  } else {
+    if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && player.onGround) {
+      player.vy = -13.5;
+      sfxJump();
+    }
   }
 
   // Sprint with Shift
   const sprinting = keys['ShiftLeft'] || keys['ShiftRight'];
-  const currentMax = sprinting ? 7.5 : maxSpeed;
+  const currentMax = sprinting ? (isUnderwater ? 5.5 : 7.5) : maxSpeed;
   player.vx = Math.max(-currentMax, Math.min(currentMax, player.vx));
+  const fric = isUnderwater ? 0.92 : FRICTION;
   if (!keys['ArrowLeft'] && !keys['ArrowRight'] && !keys['KeyA'] && !keys['KeyD']) {
-    player.vx *= FRICTION;
+    player.vx *= fric;
     if (Math.abs(player.vx) < 0.1) player.vx = 0;
   }
 
-  player.vy += GRAVITY;
-  if (player.vy > 12) player.vy = 12;
+  const grav = isUnderwater ? 0.25 : GRAVITY;
+  const maxFall = isUnderwater ? 4 : 12;
+  player.vy += grav;
+  if (player.vy > maxFall) player.vy = maxFall;
 
   player.x += player.vx;
   player.y += player.vy;
@@ -878,14 +964,24 @@ function update() {
         sfxPowerup();
         floatTexts.push({x: pu.x, y: pu.y - 10, text: 'CRAB POWER!', timer: 50, vy: -1.5});
       } else if (pu.type === 'starfish') {
-        player.starTimer = 480; // ~8 seconds
+        player.starTimer = 480;
         player.invincible = 480;
         score += 500;
         sfxStar();
         floatTexts.push({x: pu.x, y: pu.y - 10, text: '⭐ STARFISH!', timer: 50, vy: -1.5});
+      } else if (pu.type === 'oneup') {
+        lives++;
+        sfxOneUp();
+        floatTexts.push({x: pu.x, y: pu.y - 10, text: '1-UP!', timer: 60, vy: -1.5});
+      } else if (pu.type === 'laser') {
+        player.laserTimer = 600; // ~10 seconds
+        score += 300;
+        sfxPowerup();
+        floatTexts.push({x: pu.x, y: pu.y - 10, text: '🔫 LASER!', timer: 50, vy: -1.5});
       }
+      const puColor = pu.type === 'oneup' ? '#0F0' : pu.type === 'laser' ? '#0FF' : pu.type === 'crab' ? '#F66' : '#FFD700';
       for (let i = 0; i < 8; i++) {
-        particles.push({x: pu.x+12, y: pu.y+12, vx: (Math.random()-0.5)*5, vy: -Math.random()*4-1, life: 30, color: pu.type === 'crab' ? '#F66' : '#FFD700', size: 4});
+        particles.push({x: pu.x+12, y: pu.y+12, vx: (Math.random()-0.5)*5, vy: -Math.random()*4-1, life: 30, color: puColor, size: 4});
       }
     }
     // Fall off screen
@@ -897,6 +993,42 @@ function update() {
   const maxCam = LEVELS[level - 1].width * TILE - canvas.width;
   cameraX += (targetCam - cameraX) * 0.1;
   cameraX = Math.max(0, Math.min(maxCam, cameraX));
+
+  // Laser timer & shooting
+  if (player.laserTimer > 0) player.laserTimer--;
+  if (player.laserCooldown > 0) player.laserCooldown--;
+  if (player.laserTimer > 0 && (keys['KeyX'] || keys['KeyZ'] || keys['ControlLeft'] || keys['ControlRight']) && player.laserCooldown <= 0) {
+    lasers.push({
+      x: player.x + (player.facing > 0 ? player.width : 0),
+      y: player.y + 14,
+      vx: player.facing * 10,
+      w: 16, h: 4, life: 60
+    });
+    player.laserCooldown = 12;
+    sfxLaser();
+  }
+
+  // Update lasers
+  for (const laser of lasers) {
+    laser.x += laser.vx;
+    laser.life--;
+    for (const crab of crabList) {
+      if (!crab.alive) continue;
+      if (laser.x + laser.w > crab.x && laser.x < crab.x + crab.w &&
+          laser.y + laser.h > crab.y && laser.y < crab.y + crab.h) {
+        crab.alive = false;
+        crab.squishTimer = 30;
+        laser.life = 0;
+        score += 250;
+        sfxStomp();
+        floatTexts.push({x: crab.x, y: crab.y - 10, text: '+250', timer: 40, vy: -1.5});
+        for (let i = 0; i < 6; i++) {
+          particles.push({x: crab.x+14, y: crab.y+12, vx: (Math.random()-0.5)*5, vy: -Math.random()*4-1, life: 25, color: '#0FF', size: 3});
+        }
+      }
+    }
+  }
+  lasers = lasers.filter(l => l.life > 0);
 
   // Coins
   for (const coin of coinList) {
@@ -1040,8 +1172,48 @@ function render() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  drawClouds();
-  drawHills();
+  if (L.underwater) {
+    // Underwater background effects
+    // Light rays
+    ctx.save();
+    ctx.globalAlpha = 0.05;
+    for (let i = 0; i < 5; i++) {
+      const rx = ((i * 200 + Date.now() * 0.01) % (canvas.width + 100)) - 50;
+      ctx.fillStyle = '#88CCFF';
+      ctx.beginPath();
+      ctx.moveTo(rx, 0);
+      ctx.lineTo(rx + 40, 0);
+      ctx.lineTo(rx + 80, canvas.height);
+      ctx.lineTo(rx - 40, canvas.height);
+      ctx.fill();
+    }
+    ctx.restore();
+    // Seaweed
+    ctx.fillStyle = '#1a6a3a';
+    for (let i = 0; i < 20; i++) {
+      const sx = ((i * 180) - cameraX * 0.8) % (canvas.width + 300);
+      const sway = Math.sin(Date.now() * 0.002 + i) * 5;
+      const sh = 30 + (i % 3) * 20;
+      ctx.beginPath();
+      ctx.moveTo(sx, canvas.height - 64);
+      ctx.quadraticCurveTo(sx + sway, canvas.height - 64 - sh/2, sx + sway*1.5, canvas.height - 64 - sh);
+      ctx.quadraticCurveTo(sx + sway + 4, canvas.height - 64 - sh/2, sx + 6, canvas.height - 64);
+      ctx.fill();
+    }
+    // Background bubbles
+    ctx.fillStyle = 'rgba(150,200,255,0.2)';
+    for (let i = 0; i < 12; i++) {
+      const bx = (i * 120 + Math.sin(Date.now() * 0.001 + i * 2) * 20) % canvas.width;
+      const by = (canvas.height - ((Date.now() * 0.03 + i * 80) % (canvas.height + 50)));
+      const br = 3 + (i % 3) * 2;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    drawClouds();
+    drawHills();
+  }
 
   // Tiles
   for (const tile of levelTiles) {
@@ -1106,12 +1278,65 @@ function render() {
       ctx.arc(cx, cy, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    } else if (pu.type === 'oneup') {
+      // 1-UP green mushroom
+      ctx.fillStyle = '#00CC00';
+      ctx.beginPath();
+      ctx.arc(ppx + 12, ppy + 8, 10, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = '#008800';
+      ctx.fillRect(ppx + 8, ppy + 8, 8, 10);
+      ctx.fillStyle = '#FFF';
+      ctx.fillRect(ppx + 7, ppy + 2, 5, 5);
+      ctx.fillRect(ppx + 14, ppy + 2, 5, 5);
+      ctx.fillStyle = '#00CC00';
+      ctx.font = 'bold 8px monospace';
+      ctx.fillText('1UP', ppx + 3, ppy + 23);
+    } else if (pu.type === 'laser') {
+      // Laser powerup — glowing cyan orb
+      const pulse = Math.sin(Date.now() * 0.008) * 0.3 + 0.7;
+      ctx.save();
+      ctx.shadowColor = '#0FF';
+      ctx.shadowBlur = 10 * pulse;
+      ctx.fillStyle = '#0FF';
+      ctx.beginPath();
+      ctx.arc(ppx + 12, ppy + 12, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.arc(ppx + 12, ppy + 12, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Lightning bolt
+      ctx.fillStyle = '#006';
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText('⚡', ppx + 4, ppy + 17);
+      ctx.restore();
     }
+  }
+
+  // Lasers
+  for (const laser of lasers) {
+    const lx = Math.round(laser.x - cameraX);
+    const ly = Math.round(laser.y);
+    ctx.fillStyle = '#0FF';
+    ctx.shadowColor = '#0FF';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(lx, ly, laser.w, laser.h);
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(lx + 2, ly + 1, laser.w - 4, 2);
+    ctx.shadowBlur = 0;
   }
 
   // Player
   if (gameState !== 'dead' || deathTimer < 90) {
     drawPixelChar(player.x, player.y, player.facing, player.frame);
+  }
+
+  // Underwater overlay tint
+  if (LEVELS[Math.min(level, LEVELS.length) - 1].underwater) {
+    ctx.fillStyle = 'rgba(0, 40, 80, 0.15)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   // Particles
