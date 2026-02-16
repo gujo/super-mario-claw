@@ -857,11 +857,10 @@ const BOSS_QUOTES = [
 function spawnBoss() {
   const L = LEVELS[level - 1];
   jiraTickets = [];
-  // Place boss 12 tiles from end, on the ground row
-  const bossX = (L.width - 12) * TILE;
-  const bossY = 12 * TILE - 56; // just above ground (ground is y=13-14)
+  // Spawn boss 3 tiles before the flag
+  const bossX = (L.flag.x - 3) * TILE;
   boss = {
-    x: bossX, y: bossY,
+    x: bossX, y: 12 * TILE - 56,
     w: 64, h: 56, hp: level <= 4 ? 5 : 8, maxHp: level <= 4 ? 5 : 8,
     vx: -2, vy: 0, phase: 0, timer: 0,
     flash: 0, shakeTimer: 0, defeated: false,
@@ -869,7 +868,6 @@ function spawnBoss() {
     eyeGlow: 0, quoteTimer: 0,
     ticketTimer: 0
   };
-  console.log('BOSS SPAWNED at', bossX, bossY, 'level', level, 'hp', boss.hp);
 }
 
 function drawBoss(camX, camY) {
@@ -1049,8 +1047,8 @@ function bossDefeated(b) {
     particles.push({x:b.x+32,y:b.y+28,vx:(Math.random()-0.5)*12,vy:-Math.random()*10-3,life:60,color:`hsl(${Math.random()*360},100%,60%)`,size:5+Math.random()*6});
   }
   floatTexts.push({x:b.x,y:b.y-30,text:'🦀 SHIPPED TO PROD! +5000',timer:120,vy:-1});
-  flagPos = {x: b.x + TILE, y: 3 * TILE};
   speakVoice("Deployed to production! Take that, middle management!");
+  // Flag is already there, just let player reach it now
 }
 
 function updateBoss() {
@@ -1298,12 +1296,8 @@ function loadLevel(n) {
   // Easter egg: rare surprise spawns
   surpriseTimer = 0;
   surpriseActive = false;
-  // On boss levels, hide flag until boss is defeated
-  if (BOSS_LEVELS.includes(n)) {
-    flagPos = {x: -999, y: -999}; // hidden offscreen
-  } else {
-    flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
-  }
+  // Flag is always at its normal position — boss guards it
+  flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
   player.x = L.playerStart.x * TILE;
   player.y = L.playerStart.y * TILE;
   player.vx = 0;
@@ -2150,7 +2144,7 @@ function update() {
         sfxPowerup();
         floatTexts.push({x: pu.x, y: pu.y - 10, text: '⚡ VIBE LASER! [X] to pew pew!', timer: 90, vy: -1});
       } else if (pu.type === 'mushroom') {
-        player.mushroomTimer = 600; // ~10 seconds of trip
+        player.mushroomTimer = 900; // ~15 seconds of heavy trip
         score += 420;
         // Trippy sound — dissonant and unsettling
         playSound(300, 0.3, 'sine', 0.12, true);
@@ -2180,15 +2174,15 @@ function update() {
   if (player.laserTimer > 0) player.laserTimer--;
   if (player.mushroomTimer > 0) {
     player.mushroomTimer--;
-    // Crank reverb during trip
+    // Crank reverb HARD during trip
     if (reverbGain) {
-      reverbGain.gain.value = 0.85;
-      delayGain.gain.value = 0.45;
-      delayFeedback.gain.value = 0.55;
-      delayNode.delayTime.value = 0.5;
-      dryGain.gain.value = 0.4;
+      reverbGain.gain.value = 0.95;
+      delayGain.gain.value = 0.55;
+      delayFeedback.gain.value = 0.65;
+      delayNode.delayTime.value = 0.6;
+      dryGain.gain.value = 0.25;
     }
-    // Random Burroughs quotes
+    // Random Burroughs quotes every 3 seconds
     if (player.mushroomTimer % 180 === 0 && player.mushroomTimer > 0) {
       const quotes = [
         "Nothing is true, everything is permitted",
@@ -2197,20 +2191,18 @@ function update() {
         "Hustlers of the world, there is one mark you cannot beat: the mark inside",
         "A paranoid is someone who knows a little of what's going on",
         "In the magical universe there are no coincidences and there are no accidents",
-        "The aim of education is the knowledge not of facts but of values",
         "Smash the control images. Smash the control machine",
         "After one look at this planet any visitor from outer space would say: I want to see the manager",
         "The cat does not offer services. The cat offers itself",
         "Desperation is the raw material of drastic change",
-        "The way to kill a man or a nation is to cut off his dreams",
-        "Artists to my mind are the real architects of change",
         "Sometimes paranoia is just having all the facts",
-        "Your body is a ship to carry you through life. You are the captain."
+        "Everything is permitted and nothing is real",
+        "The only way to deal with an unfree world is to become so absolutely free that your very existence is an act of rebellion",
       ];
       speakVoice(quotes[Math.floor(Math.random() * quotes.length)], 0.9 + Math.random()*0.5, 0.6 + Math.random()*0.4);
     }
     // Restore audio when trip ends
-    if (player.mushroomTimer === 1) {
+    if (player.mushroomTimer <= 0) {
       if (reverbGain) {
         reverbGain.gain.value = 0.35;
         delayGain.gain.value = 0.12;
@@ -2761,9 +2753,33 @@ function render() {
     if (!coin.collected) drawCoin(coin);
   }
 
+  // Trip distortion on enemies
+  const tripping = player.mushroomTimer > 0;
+  if (tripping) {
+    ctx.save();
+    const tt = Date.now() * 0.001;
+    const ti = Math.min(player.mushroomTimer / 80, 1);
+    // Wobble and hue-shift all enemies
+    ctx.filter = `hue-rotate(${Math.sin(tt*3)*60*ti}deg) saturate(${1+ti*3}) contrast(${1+Math.sin(tt*2)*0.3*ti})`;
+  }
+
   // Crabs
   for (const crab of crabList) {
-    if (crab.alive || crab.squishTimer > 0) drawCrab(crab);
+    if (crab.alive || crab.squishTimer > 0) {
+      if (tripping) {
+        ctx.save();
+        const cx = crab.x - cameraX + 14;
+        const cy = crab.y + 12;
+        const wobble = Math.sin(Date.now()*0.005 + crab.x*0.01) * 0.2;
+        const scale = 1 + Math.sin(Date.now()*0.003 + crab.x*0.02) * 0.3;
+        ctx.translate(cx, cy);
+        ctx.rotate(wobble);
+        ctx.scale(scale, 1/scale);
+        ctx.translate(-cx, -cy);
+      }
+      drawCrab(crab);
+      if (tripping) ctx.restore();
+    }
   }
 
   // Boss
@@ -2876,6 +2892,11 @@ function render() {
     ctx.fillStyle = '#F00';
     ctx.fillRect(ux + 10, uy + 9, 3, 3);
     ctx.fillRect(ux + 16, uy + 9, 3, 3);
+  }
+
+  // End trip distortion on enemies
+  if (tripping) {
+    ctx.restore(); // restore filter
   }
 
   // Flag
@@ -3102,64 +3123,92 @@ function render() {
     ctx.restore();
   }
 
-  // Mushroom trip overlay — weird and scary
+  // Mushroom trip overlay — HEAVY psychedelia
   if (player.mushroomTimer > 0 && gameState === 'playing') {
     ctx.save();
-    const tripIntensity = Math.min(player.mushroomTimer / 100, 1);
-    const hue = (Date.now() * 0.08) % 360;
+    const tripIntensity = Math.min(player.mushroomTimer / 80, 1);
+    const hue = (Date.now() * 0.12) % 360;
     const t = Date.now() * 0.001;
 
-    // Dark pulsating vignette
+    // Heavy dark pulsating vignette
     ctx.globalCompositeOperation = 'source-over';
-    const vignette = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, canvas.width * 0.7);
+    const vignette = ctx.createRadialGradient(
+      canvas.width/2 + Math.sin(t*2)*30, canvas.height/2 + Math.cos(t*1.5)*20, 30,
+      canvas.width/2, canvas.height/2, canvas.width * 0.6);
     vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(0.6, `rgba(${50 + Math.sin(t*3)*30},0,${50 + Math.cos(t*2)*30},${0.15 * tripIntensity})`);
-    vignette.addColorStop(1, `rgba(0,0,0,${0.5 * tripIntensity})`);
+    vignette.addColorStop(0.4, `rgba(${80+Math.sin(t*3)*50},0,${80+Math.cos(t*2)*50},${0.25*tripIntensity})`);
+    vignette.addColorStop(1, `rgba(0,0,0,${0.7*tripIntensity})`);
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Color inversion flashes
-    if (Math.sin(t * 4) > 0.85) {
+    // Color inversion flashes — more frequent
+    if (Math.sin(t * 6) > 0.7) {
       ctx.globalCompositeOperation = 'difference';
-      ctx.globalAlpha = 0.15 * tripIntensity;
+      ctx.globalAlpha = 0.25 * tripIntensity;
       ctx.fillStyle = '#FFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Creepy hue cycling overlay
+    // Heavy hue cycling
     ctx.globalCompositeOperation = 'overlay';
-    ctx.globalAlpha = 0.12 * tripIntensity;
-    ctx.fillStyle = `hsl(${hue}, 100%, 30%)`;
+    ctx.globalAlpha = 0.2 * tripIntensity;
+    ctx.fillStyle = `hsl(${hue}, 100%, 40%)`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Screen wobble/warp
+    // Second overlay layer — complementary color
+    ctx.fillStyle = `hsl(${(hue+180)%360}, 100%, 30%)`;
+    ctx.globalAlpha = 0.1 * tripIntensity;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Heavy screen wobble
     ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 0.06 * tripIntensity;
-    for (let sy = 0; sy < canvas.height; sy += 20) {
-      const wobX = Math.sin(sy * 0.08 + t * 3) * 12 * tripIntensity;
-      ctx.fillStyle = `hsl(${(hue + sy * 2) % 360}, 100%, 50%)`;
-      ctx.fillRect(wobX, sy, canvas.width, 3);
+    ctx.globalAlpha = 0.1 * tripIntensity;
+    for (let sy = 0; sy < canvas.height; sy += 12) {
+      const wobX = Math.sin(sy * 0.1 + t * 4) * 20 * tripIntensity;
+      const wobY = Math.cos(sy * 0.07 + t * 3) * 5 * tripIntensity;
+      ctx.fillStyle = `hsl(${(hue + sy * 3) % 360}, 100%, 50%)`;
+      ctx.fillRect(wobX, sy + wobY, canvas.width, 4);
     }
     ctx.globalAlpha = 1;
 
-    // Floating creepy hallucinations
-    const creepyEmoji = ['🍄','👁️','🌀','💀','🕷️','👻','🔮','🫠','😵‍💫','🌚'];
-    for (let i = 0; i < 8; i++) {
-      const fx = (t * 20 + i * 150 + Math.sin(t + i) * 80) % (canvas.width + 100) - 50;
-      const fy = (Math.sin(t * 0.7 + i * 2.5) + 1) * canvas.height * 0.4 + 20;
-      const scale = 0.5 + Math.sin(t * 2 + i) * 0.3;
-      ctx.globalAlpha = (0.15 + Math.sin(t * 3 + i * 1.5) * 0.15) * tripIntensity;
-      ctx.font = `${16 + scale * 12}px serif`;
-      ctx.fillText(creepyEmoji[i], fx, fy);
+    // LOTS of floating hallucinations
+    const creepyEmoji = ['🍄','👁️','🌀','💀','🕷️','👻','🔮','🫠','😵‍💫','🌚','🐙','👽','🦑','🧿','🪬','☠️','🌈','🦷','🧠','👁️‍🗨️'];
+    for (let i = 0; i < 16; i++) {
+      const fx = (t * (15 + i*3) + i * 120 + Math.sin(t*1.5 + i) * 100) % (canvas.width + 150) - 75;
+      const fy = (Math.sin(t * 0.5 + i * 1.8) + 1) * canvas.height * 0.45 + 10;
+      const scale = 0.4 + Math.sin(t * 2.5 + i) * 0.4;
+      const rot = Math.sin(t * 2 + i * 0.7) * 0.5;
+      ctx.save();
+      ctx.translate(fx, fy);
+      ctx.rotate(rot);
+      ctx.globalAlpha = (0.2 + Math.sin(t * 4 + i * 1.3) * 0.2) * tripIntensity;
+      ctx.font = `${14 + scale * 18}px serif`;
+      ctx.fillText(creepyEmoji[i % creepyEmoji.length], 0, 0);
+      ctx.restore();
     }
 
-    // Breathing screen scale effect
-    ctx.globalAlpha = 0.03 * tripIntensity;
-    const breathScale = 1 + Math.sin(t * 1.5) * 0.02 * tripIntensity;
-    ctx.setTransform(breathScale, 0, 0, breathScale, canvas.width * (1 - breathScale) / 2, canvas.height * (1 - breathScale) / 2);
-    ctx.fillStyle = `rgba(${Math.sin(t)*128+128},0,${Math.cos(t)*128+128},0.05)`;
+    // Breathing screen scale — heavier
+    const breathScale = 1 + Math.sin(t * 1.2) * 0.04 * tripIntensity;
+    ctx.globalAlpha = 0.06 * tripIntensity;
+    ctx.setTransform(breathScale, 0, 0, breathScale, canvas.width*(1-breathScale)/2, canvas.height*(1-breathScale)/2);
+    ctx.fillStyle = `rgba(${Math.sin(t)*128+128},${Math.sin(t*1.3)*64+64},${Math.cos(t)*128+128},0.1)`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Scanlines for extra unease
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.06 * tripIntensity;
+    for (let sy = 0; sy < canvas.height; sy += 3) {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, sy, canvas.width, 1);
+    }
+
+    // Occasional full-screen color blast
+    if (Math.sin(t * 8) > 0.95) {
+      ctx.globalAlpha = 0.15 * tripIntensity;
+      ctx.fillStyle = `hsl(${Math.random()*360}, 100%, 50%)`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     ctx.globalAlpha = 1;
     // Timer indicator
