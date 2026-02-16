@@ -791,144 +791,227 @@ let player = {
 
 // Voice system defined above (speakVoice)
 
-// --- BOSS ---
+// --- BOSS: MIDDLE MANAGER CRAB ---
 let boss = null;
-const BOSS_LEVELS = [4, 8]; // Every 4th level has a boss
+let jiraTickets = [];
+const BOSS_LEVELS = [4, 8];
+const JIRA_LABELS = ['CRAB-404','CRAB-500','CRAB-1337','PROD-911','DEPLOY-0','HOTFIX-69','SPRINT-∞','RETRO-666','STANDUP-5h','BLOCKER!!','P0 URGENT','WONTFIX'];
+const BOSS_QUOTES = [
+  "Did you log that in Jira?",
+  "Let's circle back on this",
+  "Per my last email",
+  "Can you timebox that?",
+  "Let's take this offline",
+  "Blocked! Needs product sign-off!",
+  "Sprint velocity is down 40 percent!",
+  "Deploy freeze! No exceptions!",
+  "This was not in the acceptance criteria",
+  "Schedule a meeting about this meeting",
+  "Where is the retrospective action item?",
+  "We need to align on deliverables",
+];
 
 function spawnBoss() {
   const L = LEVELS[level - 1];
+  jiraTickets = [];
   boss = {
     x: (L.width - 15) * TILE, y: 10 * TILE,
-    w: 64, h: 56, hp: 5, maxHp: 5,
+    w: 64, h: 56, hp: level <= 4 ? 5 : 8, maxHp: level <= 4 ? 5 : 8,
     vx: -2, vy: 0, phase: 0, timer: 0,
     flash: 0, shakeTimer: 0, defeated: false,
     chargeTimer: 0, jumpTimer: 0,
-    eyeGlow: 0, color: level === 4 ? '#F0F' : '#0FF'
+    eyeGlow: 0, quoteTimer: 0,
+    ticketTimer: 0
   };
 }
 
-function drawBoss(bx, by) {
+function drawBoss(camX, camY) {
   if (!boss || boss.defeated) return;
   const b = boss;
-  const px = Math.round(b.x - bx);
+  const px = Math.round(b.x - camX);
   const py = Math.round(b.y);
   ctx.save();
 
-  // Shake when hit
-  if (b.flash > 0) {
-    ctx.translate(Math.sin(b.flash * 2) * 4, 0);
-    b.flash--;
-  }
-
-  // Psychedelic color cycling
-  const hue = (Date.now() * 0.1 + b.timer) % 360;
-  const bodyC = b.flash > 0 ? '#FFF' : `hsl(${hue}, 80%, 40%)`;
-  const shellC = b.flash > 0 ? '#FFF' : `hsl(${(hue + 120) % 360}, 90%, 50%)`;
+  // Screen shake
+  if (b.shakeTimer > 0) ctx.translate(Math.sin(b.shakeTimer*2)*4, 0);
+  // Flash white when hit
+  const isFlash = b.flash > 0 && Math.floor(b.flash/2)%2;
+  const hue = (Date.now() * 0.08 + b.timer) % 360;
+  const bodyC = isFlash ? '#FFF' : `hsl(${hue}, 70%, 45%)`;
+  const shellC = isFlash ? '#FFF' : `hsl(${(hue+100)%360}, 80%, 55%)`;
 
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.fillRect(px - 5, py + b.h - 4, b.w + 10, 8);
+  ctx.fillRect(px-5, py+b.h-4, b.w+10, 8);
 
-  // Body (big crab shape)
+  // Body
   ctx.fillStyle = bodyC;
   ctx.beginPath();
-  ctx.ellipse(px + b.w/2, py + b.h * 0.6, b.w/2 - 4, b.h * 0.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(px+b.w/2, py+b.h*0.6, b.w/2-4, b.h*0.4, 0, 0, Math.PI*2);
   ctx.fill();
 
-  // Shell top
+  // Shell
   ctx.fillStyle = shellC;
   ctx.beginPath();
-  ctx.ellipse(px + b.w/2, py + b.h * 0.35, b.w/2, b.h * 0.35, 0, Math.PI, 0);
+  ctx.ellipse(px+b.w/2, py+b.h*0.35, b.w/2, b.h*0.35, 0, Math.PI, 0);
   ctx.fill();
 
-  // Shell pattern — psychedelic spirals
-  ctx.strokeStyle = `hsl(${(hue + 60) % 360}, 100%, 60%)`;
+  // TIE (middle manager!)
+  ctx.fillStyle = isFlash ? '#FFF' : '#2040A0';
+  ctx.fillRect(px+b.w/2-3, py+b.h*0.45, 6, 18);
+  ctx.beginPath();
+  ctx.moveTo(px+b.w/2-8, py+b.h*0.45);
+  ctx.lineTo(px+b.w/2+8, py+b.h*0.45);
+  ctx.lineTo(px+b.w/2, py+b.h*0.45+6);
+  ctx.fill();
+
+  // Headset (bluetooth, of course)
+  ctx.strokeStyle = '#333';
   ctx.lineWidth = 2;
-  for (let i = 0; i < 3; i++) {
-    const angle = Date.now() * 0.003 + i * 2.1;
+  ctx.beginPath();
+  ctx.arc(px+b.w/2, py+b.h*0.15, 20, Math.PI*0.8, Math.PI*0.2, true);
+  ctx.stroke();
+  ctx.fillStyle = '#444';
+  ctx.fillRect(px+b.w/2-24, py+b.h*0.12, 8, 10);
+  // Microphone
+  ctx.fillStyle = '#666';
+  ctx.fillRect(px+b.w/2-26, py+b.h*0.2, 12, 4);
+  ctx.fillRect(px+b.w/2-28, py+b.h*0.18, 4, 8);
+
+  // Claws holding coffee mug (left) and laptop (right)
+  const clawSwing = Math.sin(Date.now()*0.005)*0.2;
+  // Left claw — coffee mug
+  ctx.save();
+  ctx.translate(px-2, py+b.h*0.5);
+  ctx.rotate(-0.2+clawSwing);
+  ctx.fillStyle = bodyC;
+  ctx.fillRect(-14, -5, 16, 10);
+  ctx.fillStyle = '#FFF';
+  ctx.fillRect(-18, -8, 10, 14);
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(-17, -6, 8, 10);
+  ctx.font = '6px monospace';
+  ctx.fillStyle = '#FFF';
+  ctx.fillText('☕', -17, 2);
+  ctx.restore();
+  // Right claw — laptop
+  ctx.save();
+  ctx.translate(px+b.w+2, py+b.h*0.5);
+  ctx.rotate(0.2-clawSwing);
+  ctx.fillStyle = bodyC;
+  ctx.fillRect(-2, -5, 16, 10);
+  ctx.fillStyle = '#888';
+  ctx.fillRect(8, -10, 16, 12);
+  ctx.fillStyle = '#0AF';
+  ctx.fillRect(9, -9, 14, 9);
+  ctx.font = '5px monospace';
+  ctx.fillStyle = '#FFF';
+  ctx.fillText('JIRA', 10, -3);
+  ctx.restore();
+
+  // Eyes with corporate disdain
+  for (let side = -1; side <= 1; side += 2) {
+    const ex = px+b.w/2+side*14;
+    const ey = py+b.h*0.2;
+    ctx.fillStyle = bodyC;
+    ctx.fillRect(ex-3, ey-10, 6, 12);
+    ctx.fillStyle = '#FFF';
+    ctx.beginPath(); ctx.arc(ex, ey-12, 7, 0, Math.PI*2); ctx.fill();
+    // Annoyed narrow pupils
+    const dx = player.x - b.x;
+    const pupilOff = Math.min(3, Math.max(-3, dx*0.02));
+    ctx.fillStyle = '#C00';
+    ctx.beginPath(); ctx.arc(ex+pupilOff, ey-12, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(ex+pupilOff, ey-12, 1.5, 0, Math.PI*2); ctx.fill();
+    // Angry eyebrows
+    ctx.strokeStyle = '#400';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(px + b.w/2 + Math.cos(angle) * 8, py + b.h * 0.3 + Math.sin(angle) * 5, 5 + i * 3, 0, Math.PI);
+    ctx.moveTo(ex-6, ey-18 + side*2);
+    ctx.lineTo(ex+6, ey-18 - side*2);
     ctx.stroke();
   }
 
-  // Claws (big, menacing)
-  const clawSwing = Math.sin(Date.now() * 0.005) * 0.3;
-  for (let side = -1; side <= 1; side += 2) {
-    ctx.save();
-    ctx.translate(px + (side > 0 ? b.w - 5 : 5), py + b.h * 0.5);
-    ctx.rotate(side * clawSwing);
-    ctx.fillStyle = bodyC;
-    ctx.fillRect(side > 0 ? 0 : -18, -5, 18, 10);
-    // Pincer
-    ctx.fillStyle = shellC;
-    const pinX = side > 0 ? 14 : -18;
-    ctx.fillRect(pinX, -8, 8, 6);
-    ctx.fillRect(pinX, 4, 8, 6);
-    ctx.restore();
-  }
-
-  // Eyes — glowing, psychedelic
-  const eyeGlow = Math.sin(Date.now() * 0.008) * 0.5 + 0.5;
-  for (let side = -1; side <= 1; side += 2) {
-    const ex = px + b.w/2 + side * 14;
-    const ey = py + b.h * 0.2;
-    // Eye stalk
-    ctx.fillStyle = bodyC;
-    ctx.fillRect(ex - 3, ey - 10, 6, 12);
-    // Eye
-    ctx.fillStyle = '#FFF';
-    ctx.beginPath();
-    ctx.arc(ex, ey - 12, 7, 0, Math.PI * 2);
-    ctx.fill();
-    // Pupil — tracks player
-    const dx = player.x - b.x;
-    const pupilOff = Math.min(3, Math.max(-3, dx * 0.02));
-    ctx.fillStyle = `hsl(${(hue + 180) % 360}, 100%, ${50 + eyeGlow * 30}%)`;
-    ctx.beginPath();
-    ctx.arc(ex + pupilOff, ey - 12, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(ex + pupilOff, ey - 12, 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Crown (psychedelic king crab)
-  ctx.fillStyle = '#FFD700';
-  const crownY = py - 2;
-  ctx.fillRect(px + b.w/2 - 15, crownY, 30, 8);
-  for (let i = 0; i < 5; i++) {
-    ctx.fillRect(px + b.w/2 - 15 + i * 7, crownY - 6, 5, 6);
-  }
-  ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+  // Legs
+  ctx.strokeStyle = bodyC; ctx.lineWidth = 3;
   for (let i = 0; i < 3; i++) {
-    ctx.beginPath();
-    ctx.arc(px + b.w/2 - 8 + i * 8, crownY - 3, 2, 0, Math.PI * 2);
-    ctx.fill();
+    for (let side = -1; side <= 1; side += 2) {
+      const lx = px+b.w/2+side*(8+i*6);
+      const ly = py+b.h-4;
+      const bend = Math.sin(b.timer*0.08+i*1.2+(side>0?Math.PI:0))*4;
+      ctx.beginPath();
+      ctx.moveTo(lx, ly); ctx.lineTo(lx+side*8, ly+8+bend); ctx.lineTo(lx+side*14, ly+12);
+      ctx.stroke();
+    }
   }
 
   // HP bar
   ctx.fillStyle = '#400';
-  ctx.fillRect(px + 5, py - 16, b.w - 10, 6);
-  ctx.fillStyle = b.hp > 2 ? '#0F0' : b.hp > 1 ? '#FF0' : '#F00';
-  ctx.fillRect(px + 5, py - 16, (b.w - 10) * (b.hp / b.maxHp), 6);
-  ctx.strokeStyle = '#FFF';
-  ctx.strokeRect(px + 5, py - 16, b.w - 10, 6);
+  ctx.fillRect(px+5, py-18, b.w-10, 6);
+  ctx.fillStyle = b.hp > b.maxHp*0.3 ? '#0F0' : b.hp > 1 ? '#FF0' : '#F00';
+  ctx.fillRect(px+5, py-18, (b.w-10)*(b.hp/b.maxHp), 6);
+  ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1;
+  ctx.strokeRect(px+5, py-18, b.w-10, 6);
 
   // Name
   ctx.fillStyle = '#FFF';
-  ctx.font = 'bold 10px monospace';
+  ctx.font = 'bold 9px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('KING CRAB', px + b.w/2, py - 20);
+  ctx.fillText('🦀 MIDDLE MANAGER', px+b.w/2, py-22);
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#F88';
+  ctx.fillText('"NO DEPLOYS ON FRIDAY"', px+b.w/2, py-30);
   ctx.textAlign = 'left';
 
   ctx.restore();
+
+  // Draw JIRA tickets (projectiles)
+  for (const jt of jiraTickets) {
+    if (!jt.active) continue;
+    const jx = Math.round(jt.x - camX);
+    const jy = Math.round(jt.y);
+    ctx.save();
+    ctx.translate(jx+12, jy+8);
+    ctx.rotate(jt.rot);
+    // Ticket shape
+    ctx.fillStyle = '#FFFFDD';
+    ctx.fillRect(-14, -10, 28, 20);
+    ctx.strokeStyle = '#CCC';
+    ctx.strokeRect(-14, -10, 28, 20);
+    // Blue Jira bar
+    ctx.fillStyle = '#0052CC';
+    ctx.fillRect(-14, -10, 28, 5);
+    // Label
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 6px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(jt.label, 0, 3);
+    ctx.fillStyle = '#C00';
+    ctx.font = '5px monospace';
+    ctx.fillText('BLOCKER', 0, 9);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
+}
+
+function bossDefeated(b) {
+  b.defeated = true;
+  score += 5000;
+  for (let i = 0; i < 30; i++) {
+    particles.push({x:b.x+32,y:b.y+28,vx:(Math.random()-0.5)*12,vy:-Math.random()*10-3,life:60,color:`hsl(${Math.random()*360},100%,60%)`,size:5+Math.random()*6});
+  }
+  floatTexts.push({x:b.x,y:b.y-30,text:'🦀 SHIPPED TO PROD! +5000',timer:120,vy:-1});
+  flagPos = {x: b.x + TILE, y: 3 * TILE};
+  speakVoice("Deployed to production! Take that, middle management!");
 }
 
 function updateBoss() {
   if (!boss || boss.defeated) return;
   const b = boss;
   b.timer++;
+  if (b.flash > 0) b.flash--;
+  if (b.shakeTimer > 0) b.shakeTimer--;
 
   // Gravity
   b.vy += GRAVITY;
@@ -949,7 +1032,7 @@ function updateBoss() {
     }
   }
 
-  // AI behavior — phases get harder as HP drops
+  // AI — gets more aggressive as HP drops
   const aggression = 1 + (b.maxHp - b.hp) * 0.3;
 
   // Movement — patrol and chase
@@ -967,7 +1050,6 @@ function updateBoss() {
   if (onGround && b.jumpTimer > 90 / aggression) {
     b.vy = -10 - aggression * 2;
     b.jumpTimer = 0;
-    // Screen shake
     b.shakeTimer = 10;
   }
 
@@ -976,42 +1058,85 @@ function updateBoss() {
   if (b.x < 0) { b.x = 0; b.vx = Math.abs(b.vx); }
   if (b.x + b.w > L.width * TILE) { b.x = L.width * TILE - b.w; b.vx = -Math.abs(b.vx); }
 
-  // Player collision
-  const px = player.x, py = player.y, pw = player.width, ph = player.height;
-  if (px + pw > b.x && px < b.x + b.w && py + ph > b.y && py < b.y + b.h) {
+  // Throw JIRA tickets!
+  b.ticketTimer++;
+  const ticketInterval = Math.max(40, 90 - aggression * 15);
+  if (b.ticketTimer > ticketInterval) {
+    b.ticketTimer = 0;
+    const dx = player.x - b.x;
+    const dy = player.y - b.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const speed = 4 + aggression;
+    jiraTickets.push({
+      x: b.x + b.w/2, y: b.y + b.h*0.3,
+      vx: (dx/dist) * speed, vy: (dy/dist) * speed - 2,
+      w: 28, h: 20, active: true, rot: 0,
+      label: JIRA_LABELS[Math.floor(Math.random()*JIRA_LABELS.length)]
+    });
+    playSound(300, 0.1, 'square', 0.1);
+  }
+
+  // Speak manager quotes
+  b.quoteTimer++;
+  if (b.quoteTimer > 240) {
+    b.quoteTimer = 0;
+    const q = BOSS_QUOTES[Math.floor(Math.random()*BOSS_QUOTES.length)];
+    speakVoice(q, 0.8, 1.0);
+    floatTexts.push({x:b.x-20, y:b.y-40, text:q, timer:80, vy:-0.5});
+  }
+
+  // Update JIRA tickets
+  for (const jt of jiraTickets) {
+    if (!jt.active) continue;
+    jt.x += jt.vx;
+    jt.y += jt.vy;
+    jt.vy += 0.15; // slight gravity
+    jt.rot += 0.08;
+    // Hit player — slows them down
+    if (player.invincible <= 0 &&
+        player.x + player.width > jt.x && player.x < jt.x + jt.w &&
+        player.y + player.height > jt.y && player.y < jt.y + jt.h) {
+      jt.active = false;
+      // Slow player down (bureaucracy!)
+      player.vx *= 0.3;
+      player.invincible = 30;
+      playSound(100, 0.15, 'sawtooth', 0.12);
+      floatTexts.push({x:player.x, y:player.y-15, text:'📋 BLOCKED BY JIRA!', timer:40, vy:-1.5});
+      if (player.big) {
+        player.big = false;
+        sfxDie();
+      } else if (player.starTimer <= 0) {
+        // Don't kill, just slow — JIRA hurts but doesn't kill (usually)
+        score = Math.max(0, score - 100);
+        floatTexts.push({x:player.x, y:player.y-30, text:'-100 VELOCITY', timer:40, vy:-2});
+      }
+    }
+    // Off screen
+    if (jt.y > 15 * TILE || jt.x < -50 || jt.x > L.width * TILE + 50) jt.active = false;
+  }
+  jiraTickets = jiraTickets.filter(j => j.active);
+
+  // Player collision with boss
+  const ppx = player.x, ppy = player.y, ppw = player.width, pph = player.height;
+  if (ppx + ppw > b.x && ppx < b.x + b.w && ppy + pph > b.y && ppy < b.y + b.h) {
     // Stomp from above
-    if (player.vy > 0 && py + ph < b.y + b.h * 0.4) {
+    if (player.vy > 0 && ppy + pph < b.y + b.h * 0.4) {
       b.hp--;
       b.flash = 15;
+      b.shakeTimer = 10;
       player.vy = -12;
       score += 200;
       playSound(150, 0.2, 'sawtooth', 0.2);
-      playSound(100, 0.3, 'square', 0.15);
-      floatTexts.push({x: b.x + 20, y: b.y - 10, text: b.hp > 0 ? `OUCH! ${b.hp}/${b.maxHp}` : 'K.O.!!!', timer: 50, vy: -2});
-      for (let i = 0; i < 12; i++) {
-        particles.push({x: b.x + 32, y: b.y, vx: (Math.random()-0.5)*8, vy: -Math.random()*6-2, life: 30, color: `hsl(${Math.random()*360},100%,60%)`, size: 4 + Math.random()*4});
-      }
-      if (b.hp <= 0) {
-        b.defeated = true;
-        score += 5000;
-        // Victory explosion
-        for (let i = 0; i < 30; i++) {
-          particles.push({x: b.x + 32, y: b.y + 28, vx: (Math.random()-0.5)*12, vy: -Math.random()*10-3, life: 60, color: `hsl(${Math.random()*360},100%,60%)`, size: 5 + Math.random()*6});
-        }
-        floatTexts.push({x: b.x, y: b.y - 30, text: '👑 KING CRAB DEFEATED! +5000', timer: 120, vy: -1});
-        // Reveal flag
-        flagPos = {x: b.x + TILE, y: 3 * TILE};
-        speakVoice('mamma mia!');
-      }
+      const msgs = ['OUCH!','OW! MY KPIs!','NOT THE ROADMAP!','MY QUARTERLY REVIEW!','STOP PUSHING TO MAIN!'];
+      floatTexts.push({x:b.x+20,y:b.y-10,text:b.hp>0?`${msgs[Math.floor(Math.random()*msgs.length)]} ${b.hp}/${b.maxHp}`:'FIRED!!!',timer:50,vy:-2});
+      for (let i = 0; i < 12; i++) particles.push({x:b.x+32,y:b.y,vx:(Math.random()-0.5)*8,vy:-Math.random()*6-2,life:30,color:`hsl(${Math.random()*360},100%,60%)`,size:4+Math.random()*4});
+      if (b.hp <= 0) bossDefeated(b);
     } else if (player.invincible <= 0) {
-      // Hurt player
       if (player.starTimer > 0) {
-        b.hp--;
-        b.flash = 15;
+        b.hp--; b.flash = 15;
+        if (b.hp <= 0) bossDefeated(b);
       } else if (player.big) {
-        player.big = false;
-        player.invincible = 90;
-        sfxDie();
+        player.big = false; player.invincible = 90; sfxDie();
       } else {
         playerDie();
       }
@@ -1021,21 +1146,9 @@ function updateBoss() {
   // Laser hit
   for (const laser of lasers) {
     if (laser.active && laser.x + 8 > b.x && laser.x < b.x + b.w && laser.y + 4 > b.y && laser.y < b.y + b.h) {
-      b.hp--;
-      b.flash = 10;
-      laser.active = false;
-      score += 100;
-      floatTexts.push({x: b.x + 20, y: b.y - 10, text: `ZAP! ${b.hp}/${b.maxHp}`, timer: 40, vy: -2});
-      if (b.hp <= 0) {
-        b.defeated = true;
-        score += 5000;
-        for (let i = 0; i < 30; i++) {
-          particles.push({x: b.x + 32, y: b.y + 28, vx: (Math.random()-0.5)*12, vy: -Math.random()*10-3, life: 60, color: `hsl(${Math.random()*360},100%,60%)`, size: 5 + Math.random()*6});
-        }
-        floatTexts.push({x: b.x, y: b.y - 30, text: '👑 KING CRAB DEFEATED! +5000', timer: 120, vy: -1});
-        flagPos = {x: b.x + TILE, y: 3 * TILE};
-        speakVoice('mamma mia!');
-      }
+      b.hp--; b.flash = 10; laser.active = false; score += 100;
+      floatTexts.push({x:b.x+20,y:b.y-10,text:`ZAP! ${b.hp}/${b.maxHp}`,timer:40,vy:-2});
+      if (b.hp <= 0) bossDefeated(b);
     }
   }
 }
@@ -2285,90 +2398,7 @@ function update() {
   }
 
   // Boss update
-  if (boss && boss.alive) {
-    boss.timer++;
-    boss.legFrame += 0.1;
-    boss.eyeAngle += 0.03;
-    // Movement — charge toward player
-    const dx = player.x - boss.x;
-    boss.vx = dx > 0 ? 1.8 : -1.8;
-    if (boss.timer % 120 < 60) boss.vx *= 1.5; // charge phases
-    boss.x += boss.vx;
-    // Keep on ground
-    boss.y = 10 * TILE - boss.h;
-    // Boss attacks — spawn projectiles every 2 seconds
-    boss.attackTimer++;
-    if (boss.attackTimer > 120) {
-      boss.attackTimer = 0;
-      // Spit crab minions
-      crabList.push({x: boss.x + 32, y: boss.y + 40, w: 28, h: 24, vx: dx > 0 ? -2.5 : 2.5, alive: true, frame: 0, frameTimer: 0, squishTimer: 0});
-      playSound(150, 0.2, 'sawtooth', 0.15);
-    }
-    // Flash when hit
-    if (boss.flashTimer > 0) boss.flashTimer--;
-    if (boss.shakeTimer > 0) boss.shakeTimer--;
-    // Player stomp boss (land on top)
-    if (player.vy > 0 && player.y + player.height > boss.y && player.y + player.height < boss.y + 20 &&
-        player.x + player.width > boss.x && player.x < boss.x + boss.w) {
-      boss.hp--;
-      boss.flashTimer = 15;
-      boss.shakeTimer = 10;
-      player.vy = -14; // Bounce off
-      playSound(200, 0.3, 'square', 0.2);
-      score += 200;
-      floatTexts.push({x: boss.x, y: boss.y - 20, text: `OUCH! ${boss.hp}/${boss.maxHp}`, timer: 40, vy: -2});
-      if (boss.hp <= 0) {
-        boss.alive = false;
-        boss.defeated = true;
-        score += 5000;
-        // Victory explosion
-        for (let i = 0; i < 30; i++) {
-          particles.push({x: boss.x+32, y: boss.y+32, vx: (Math.random()-0.5)*10, vy: -Math.random()*8-2, life: 60, color: `hsl(${Math.random()*360},100%,60%)`, size: 5+Math.random()*5});
-        }
-        floatTexts.push({x: boss.x, y: boss.y - 40, text: '🦀 BOSS DEFEATED! +5000', timer: 90, vy: -1});
-        speakVoice("Mama mia! I got-a the big crab!");
-        sfxWin();
-        // Reveal flag
-        setTimeout(() => {
-          gameState = 'win';
-          winTimer = 0;
-          stopMusic();
-          sfxWin();
-        }, 2000);
-      }
-    }
-    // Boss hurts player (side collision)
-    else if (player.invincible <= 0 &&
-        player.x + player.width > boss.x + 5 && player.x < boss.x + boss.w - 5 &&
-        player.y + player.height > boss.y + 15 && player.y < boss.y + boss.h) {
-      if (player.starTimer > 0) {
-        boss.hp -= 2; boss.flashTimer = 15; boss.shakeTimer = 10;
-        playSound(200, 0.3, 'square', 0.2);
-      } else if (player.big) {
-        player.big = false; player.invincible = 90; sfxDie();
-      } else {
-        playerDie();
-      }
-    }
-    // Laser hits boss
-    for (const laser of lasers) {
-      if (laser.active && laser.x + 12 > boss.x && laser.x < boss.x + boss.w &&
-          laser.y + 4 > boss.y && laser.y < boss.y + boss.h) {
-        boss.hp--; boss.flashTimer = 15; boss.shakeTimer = 10;
-        laser.active = false;
-        playSound(250, 0.2, 'square', 0.15);
-        score += 100;
-        if (boss.hp <= 0) {
-          boss.alive = false; boss.defeated = true; score += 5000;
-          for (let i = 0; i < 30; i++) particles.push({x:boss.x+32,y:boss.y+32,vx:(Math.random()-0.5)*10,vy:-Math.random()*8-2,life:60,color:`hsl(${Math.random()*360},100%,60%)`,size:5+Math.random()*5});
-          floatTexts.push({x:boss.x,y:boss.y-40,text:'🦀 BOSS DEFEATED! +5000',timer:90,vy:-1});
-          speakVoice("Mama mia! I got-a the big crab!");
-          sfxWin();
-          setTimeout(()=>{gameState='win';winTimer=0;stopMusic();sfxWin();},2000);
-        }
-      }
-    }
-  }
+  updateBoss();
 
   // Flag (skip on boss levels — win is triggered by defeating boss)
   if (!BOSS_LEVELS.includes(level) || (boss && boss.defeated)) {
@@ -2680,107 +2710,8 @@ function render() {
     if (crab.alive || crab.squishTimer > 0) drawCrab(crab);
   }
 
-  // BOSS — Giant Psychedelic Crab
-  if (boss && boss.alive) {
-    ctx.save();
-    const bx = Math.round(boss.x - cameraX);
-    const by = Math.round(boss.y);
-    // Screen shake when hit
-    if (boss.shakeTimer > 0) ctx.translate(Math.random()*6-3, Math.random()*6-3);
-    // Flash white when damaged
-    const flash = boss.flashTimer > 0 && Math.floor(boss.flashTimer/2)%2;
-    // Psychedelic color cycling
-    const hue = (Date.now() * 0.1) % 360;
-    const bodyColor = flash ? '#FFF' : `hsl(${hue}, 80%, 40%)`;
-    const shellColor = flash ? '#FFF' : `hsl(${(hue+40)%360}, 90%, 50%)`;
-    const clawColor = flash ? '#FFF' : `hsl(${(hue+120)%360}, 85%, 55%)`;
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(bx+5, by+boss.h-4, boss.w-10, 8);
-    // Body (big oval)
-    ctx.fillStyle = bodyColor;
-    ctx.beginPath();
-    ctx.ellipse(bx+32, by+35, 28, 22, 0, 0, Math.PI*2);
-    ctx.fill();
-    // Shell pattern
-    ctx.fillStyle = shellColor;
-    ctx.beginPath();
-    ctx.ellipse(bx+32, by+30, 24, 16, 0, Math.PI, 0);
-    ctx.fill();
-    // Shell spikes
-    for (let i = 0; i < 5; i++) {
-      const sx = bx + 12 + i * 10;
-      ctx.fillStyle = `hsl(${(hue+i*30)%360}, 100%, 60%)`;
-      ctx.beginPath();
-      ctx.moveTo(sx, by+16); ctx.lineTo(sx+5, by+6); ctx.lineTo(sx+10, by+16);
-      ctx.fill();
-    }
-    // Psychedelic eyes (spiral)
-    for (let side = -1; side <= 1; side += 2) {
-      const ex = bx + 32 + side * 14;
-      const ey = by + 28;
-      // Eye stalk
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(ex-3, ey-10, 6, 12);
-      // Eyeball
-      ctx.fillStyle = '#FFF';
-      ctx.beginPath(); ctx.arc(ex, ey-12, 7, 0, Math.PI*2); ctx.fill();
-      // Spiral pupil
-      ctx.strokeStyle = `hsl(${(hue+180)%360}, 100%, 50%)`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for (let a = 0; a < Math.PI*4; a += 0.2) {
-        const r = a * 0.8;
-        const px = ex + Math.cos(a + boss.eyeAngle) * r;
-        const py = ey - 12 + Math.sin(a + boss.eyeAngle) * r;
-        a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-      }
-      ctx.stroke();
-    }
-    // Claws with animation
-    const clawOpen = Math.sin(boss.timer * 0.05) * 0.3;
-    for (let side = -1; side <= 1; side += 2) {
-      ctx.save();
-      const cx = bx + 32 + side * 35;
-      const cy = by + 38;
-      ctx.fillStyle = clawColor;
-      // Upper claw
-      ctx.beginPath();
-      ctx.ellipse(cx, cy - 5 - clawOpen*5, 10, 6, side*0.3, 0, Math.PI*2);
-      ctx.fill();
-      // Lower claw
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + 5 + clawOpen*5, 10, 6, -side*0.3, 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-    }
-    // Legs (animated)
-    ctx.strokeStyle = bodyColor;
-    ctx.lineWidth = 3;
-    for (let i = 0; i < 3; i++) {
-      for (let side = -1; side <= 1; side += 2) {
-        const lx = bx + 32 + side * (8 + i*6);
-        const ly = by + 48;
-        const legBend = Math.sin(boss.legFrame + i * 1.2 + (side>0?Math.PI:0)) * 4;
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(lx + side * 8, ly + 8 + legBend);
-        ctx.lineTo(lx + side * 14, ly + 14);
-        ctx.stroke();
-      }
-    }
-    // HP bar
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(bx, by-16, boss.w, 8);
-    ctx.fillStyle = boss.hp > boss.maxHp*0.3 ? '#0F0' : '#F00';
-    ctx.fillRect(bx+1, by-15, (boss.w-2) * (boss.hp/boss.maxHp), 6);
-    ctx.fillStyle = '#FFF';
-    ctx.font = 'bold 8px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('CRAB LORD', bx+32, by-19);
-    ctx.textAlign = 'left';
-    ctx.restore();
-  }
+  // Boss
+  drawBoss(cameraX, 0);
 
   // Jellyfish
   for (const jelly of jellyList) {
