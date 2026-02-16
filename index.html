@@ -192,6 +192,22 @@ let winTimer = 0;
 let titleBlink = 0;
 let particles = [];
 let floatTexts = [];
+let surpriseTimer = 0;
+let surpriseActive = false;
+let disco = false;
+let discoTimer = 0;
+const funMessages = [
+  "A wild MEGA CRAB appears!",
+  "🦀 CRAB RAVE! 🦀",
+  "The crabs have unionized!",
+  "Your princess is in another shell!",
+  "IT'S-A ME, KLOD-IO!",
+  "Crabs: 'We demand better wages!'",
+  "⚡ UNLIMITED POWER! ⚡",
+  "Secret crab society discovered!",
+  "Achievement: Touch Grass (jk, no grass here)",
+  "Plot twist: YOU were the crab all along",
+];
 
 // --- LEVEL DATA ---
 // Tile types: 0=air, 1=ground, 2=brick, 3=question block, 4=pipe, 5=flag
@@ -484,15 +500,41 @@ function loadLevel(n) {
   player.laserTimer = 0;
   player.laserCooldown = 0;
 
-  // Assign powerups to certain question blocks
+  // Assign powerups to question blocks — laser is always first!
   const qBlocks = levelTiles.filter(t => t.t === 3);
-  if (qBlocks.length >= 2) {
-    qBlocks[0].powerup = 'crab';
-    qBlocks[Math.floor(qBlocks.length / 2)].powerup = 'starfish';
-    if (qBlocks.length >= 3) qBlocks[2].powerup = 'laser';
-    if (qBlocks.length >= 4) qBlocks[3].powerup = 'oneup';
-    if (qBlocks.length >= 5) qBlocks[qBlocks.length - 1].powerup = 'crab';
+  if (qBlocks.length >= 1) qBlocks[0].powerup = 'laser';  // FIRST ? = always laser
+  if (qBlocks.length >= 2) qBlocks[1].powerup = 'crab';
+  if (qBlocks.length >= 3) qBlocks[2].powerup = 'starfish';
+  if (qBlocks.length >= 4) qBlocks[3].powerup = 'oneup';
+  // Remaining ? blocks get random powerups
+  for (let i = 4; i < qBlocks.length; i++) {
+    const r = Math.random();
+    if (r < 0.35) qBlocks[i].powerup = 'laser';
+    else if (r < 0.55) qBlocks[i].powerup = 'crab';
+    else if (r < 0.7) qBlocks[i].powerup = 'starfish';
+    else if (r < 0.8) qBlocks[i].powerup = 'oneup';
+    // else: coin (default)
   }
+
+  // Randomize level elements — shift crabs, add surprise coins, vary enemy speeds
+  for (const crab of crabList) {
+    crab.x += (Math.random() - 0.5) * TILE * 3; // Randomize position slightly
+  }
+  for (const jelly of jellyList) {
+    jelly.baseY += (Math.random() - 0.5) * TILE * 2;
+    jelly.y = jelly.baseY;
+  }
+  // Bonus random coins
+  const Ldata = LEVELS[level - 1];
+  for (let i = 0; i < 5; i++) {
+    const rx = (10 + Math.random() * (Ldata.width - 20)) * TILE;
+    const ry = (3 + Math.random() * 6) * TILE;
+    coinList.push({x: rx, y: ry, w: 16, h: 16, collected: false, bobOffset: Math.random() * Math.PI * 2});
+  }
+
+  // Easter egg: rare surprise spawns
+  surpriseTimer = 0;
+  surpriseActive = false;
   flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
   player.x = L.playerStart.x * TILE;
   player.y = L.playerStart.y * TILE;
@@ -537,17 +579,40 @@ function worldCollide(entity) {
       if (isSolid(tx, top)) {
         entity.y = (top + 1) * TILE;
         entity.vy = 0;
-        // Hit question block
+        // Hit brick — break it!
         const tile = getTile(tx, top);
+        if (tile && tile.t === 2) {
+          // Remove the brick
+          const idx = levelTiles.indexOf(tile);
+          if (idx !== -1) levelTiles.splice(idx, 1);
+          playSound(150, 0.15, 'sawtooth', 0.2);
+          score += 10;
+          // Brick debris particles
+          for (let i = 0; i < 8; i++) {
+            particles.push({
+              x: tx * TILE + 16, y: top * TILE + 8,
+              vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 6 - 2,
+              life: 35, color: LEVELS[level-1].brickColor || '#C84C09', size: 4 + Math.random() * 3
+            });
+          }
+          floatTexts.push({x: tx * TILE, y: top * TILE - 10, text: 'SMASH!', timer: 25, vy: -2});
+        }
+        // Hit question block
         if (tile && tile.t === 3 && !questionHit.has(`${tx},${top}`)) {
           questionHit.add(`${tx},${top}`);
           // Some question blocks spawn powerups
-          if (tile.powerup === 'crab') {
+          if (tile.powerup === 'laser') {
+            spawnPowerup(tx, top, 'laser');
+            sfxPowerup();
+          } else if (tile.powerup === 'crab') {
             spawnPowerup(tx, top, 'crab');
             sfxPowerup();
           } else if (tile.powerup === 'starfish') {
             spawnPowerup(tx, top, 'starfish');
             sfxStar();
+          } else if (tile.powerup === 'oneup') {
+            spawnPowerup(tx, top, 'oneup');
+            sfxOneUp();
           } else {
             score += 100;
             coins++;
@@ -1353,6 +1418,40 @@ function update() {
     playerDie();
   }
 
+  // Surprise easter eggs
+  surpriseTimer++;
+  // Crab Rave at random intervals
+  if (!surpriseActive && surpriseTimer > 600 && Math.random() < 0.002) {
+    surpriseActive = true;
+    disco = true;
+    discoTimer = 180; // 3 seconds of disco
+    const msg = funMessages[Math.floor(Math.random() * funMessages.length)];
+    floatTexts.push({x: player.x, y: player.y - 40, text: msg, timer: 120, vy: -0.5});
+    // Give bonus points
+    score += 500;
+    sfxWin();
+    surpriseTimer = 0;
+  }
+  if (disco) {
+    discoTimer--;
+    if (discoTimer <= 0) { disco = false; surpriseActive = false; }
+    // Make all living crabs dance (bounce)
+    for (const crab of crabList) {
+      if (crab.alive) crab.y += Math.sin(discoTimer * 0.3) * 1.5;
+    }
+  }
+
+  // Rare mega coin shower
+  if (surpriseTimer > 0 && surpriseTimer % 1800 === 0 && Math.random() < 0.3) {
+    floatTexts.push({x: player.x, y: player.y - 30, text: '💰 COIN SHOWER! 💰', timer: 60, vy: -1});
+    for (let i = 0; i < 10; i++) {
+      const rx = player.x + (Math.random() - 0.5) * 300;
+      const ry = player.y - 100 - Math.random() * 100;
+      coinList.push({x: rx, y: ry, w: 16, h: 16, collected: false, bobOffset: Math.random() * Math.PI * 2});
+    }
+    sfxCoin();
+  }
+
   // Particles
   for (const p of particles) {
     p.x += p.vx;
@@ -1766,6 +1865,22 @@ function render() {
     ctx.globalAlpha = ft.timer / 40;
     ctx.fillText(ft.text, ft.x - cameraX + 16, ft.y);
     ctx.globalAlpha = 1;
+  }
+
+  // Disco overlay during crab rave
+  if (disco && gameState === 'playing') {
+    ctx.save();
+    const hue = (Date.now() / 5) % 360;
+    ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.08)`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Disco ball sparkles
+    for (let i = 0; i < 8; i++) {
+      const sx = Math.random() * canvas.width;
+      const sy = Math.random() * canvas.height;
+      ctx.fillStyle = `hsla(${(hue + i * 45) % 360}, 100%, 80%, 0.5)`;
+      ctx.fillRect(sx, sy, 4, 4);
+    }
+    ctx.restore();
   }
 
   drawHUD();
