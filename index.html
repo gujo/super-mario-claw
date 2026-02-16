@@ -955,7 +955,7 @@ function drawPixelChar(x, y, facing, frame) {
   // Hoodie pocket / code symbol
   ctx.fillStyle = '#FFF';
   ctx.font = '7px monospace';
-  ctx.fillText('</>', px + 5, py + 19);
+  ctx.fillText('<\u002F>', px + 5, py + 19);
 
   // Legs (dark jeans)
   ctx.fillStyle = '#2a2a3a';
@@ -2474,10 +2474,14 @@ function render() {
     ctx.fill();
   }
 
-  // Subtle screen wobble (psychedelic)
-  if (gameState === 'playing' && screenWobble !== 0) {
-    const wobbleData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    ctx.putImageData(wobbleData, Math.sin(Date.now() * 0.003) * screenWobble, Math.cos(Date.now() * 0.004) * screenWobble * 0.5);
+  // Subtle chromatic aberration (psychedelic)
+  if (gameState === 'playing') {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.015;
+    ctx.fillStyle = `hsl(${(Date.now() * 0.05) % 360}, 100%, 50%)`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
   }
 
   drawHUD();
