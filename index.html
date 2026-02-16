@@ -3296,7 +3296,15 @@ gameLoop();
   document.addEventListener('gesturestart', e => e.preventDefault());
 
   // Also make canvas tap trigger ensureAudio (needed for mobile audio policy)
-  canvas.addEventListener('touchstart', () => { ensureAudio(); }, {once: true});
+  // Fullscreen + audio unlock on first tap
+  function goFullscreen() {
+    ensureAudio();
+    const el = document.documentElement;
+    const rq = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if (rq) rq.call(el).catch(() => {});
+  }
+  canvas.addEventListener('touchstart', goFullscreen, {once: true});
+  document.getElementById('btn-start').addEventListener('touchstart', goFullscreen, {once: true});
 })();
 </script>
 </body>
