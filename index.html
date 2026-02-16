@@ -1063,18 +1063,26 @@ function updateBoss() {
   if (b.vy > 10) b.vy = 10;
   b.y += b.vy;
 
-  // Ground collision
-  const bBottom = Math.floor((b.y + b.h) / TILE);
-  const bLeft = Math.floor(b.x / TILE);
-  const bRight = Math.floor((b.x + b.w) / TILE);
+  // Ground collision — check multiple rows in case of fast fall
   let onGround = false;
-  for (let tx = bLeft; tx <= bRight; tx++) {
-    if (isSolid(tx, bBottom)) {
-      b.y = bBottom * TILE - b.h;
-      b.vy = 0;
-      onGround = true;
-      break;
+  for (let checkY = Math.floor(b.y / TILE); checkY <= Math.floor((b.y + b.h) / TILE); checkY++) {
+    const bLeft = Math.floor(b.x / TILE);
+    const bRight = Math.floor((b.x + b.w) / TILE);
+    for (let tx = bLeft; tx <= bRight; tx++) {
+      if (isSolid(tx, checkY) && b.vy >= 0) {
+        b.y = checkY * TILE - b.h;
+        b.vy = 0;
+        onGround = true;
+        break;
+      }
     }
+    if (onGround) break;
+  }
+  // Safety net: if boss falls below ground level, teleport back up
+  if (b.y > 13 * TILE) {
+    b.y = 12 * TILE - b.h;
+    b.vy = 0;
+    onGround = true;
   }
 
   // AI — gets more aggressive as HP drops
@@ -1098,10 +1106,12 @@ function updateBoss() {
     b.shakeTimer = 10;
   }
 
-  // Wall bounds
+  // Keep boss in arena near flag — don't let it wander into gaps
   const L = LEVELS[level - 1];
-  if (b.x < 0) { b.x = 0; b.vx = Math.abs(b.vx); }
-  if (b.x + b.w > L.width * TILE) { b.x = L.width * TILE - b.w; b.vx = -Math.abs(b.vx); }
+  const bossMinX = Math.max(0, (L.flag.x - 20) * TILE); // 20 tiles left of flag
+  const bossMaxX = L.width * TILE - b.w;
+  if (b.x < bossMinX) { b.x = bossMinX; b.vx = Math.abs(b.vx); }
+  if (b.x > bossMaxX) { b.x = bossMaxX; b.vx = -Math.abs(b.vx); }
 
   // Throw JIRA tickets!
   b.ticketTimer++;
