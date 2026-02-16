@@ -29,10 +29,63 @@ const ROWS = 15;
 
 // --- AUDIO ENGINE ---
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx;
-function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+let audioCtx, masterGain, reverbNode, reverbGain, delayNode, delayFeedback, delayGain, dryGain;
 
-function playSound(freq, duration, type='square', vol=0.15) {
+function ensureAudio() {
+  if (audioCtx) return;
+  audioCtx = new AudioCtx();
+
+  // Master gain
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 1.0;
+  masterGain.connect(audioCtx.destination);
+
+  // Dry path
+  dryGain = audioCtx.createGain();
+  dryGain.gain.value = 0.7;
+  dryGain.connect(masterGain);
+
+  // --- Reverb (convolver with generated impulse) ---
+  reverbNode = audioCtx.createConvolver();
+  const irLen = audioCtx.sampleRate * 2.5; // 2.5s tail
+  const irBuf = audioCtx.createBuffer(2, irLen, audioCtx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = irBuf.getChannelData(ch);
+    for (let i = 0; i < irLen; i++) {
+      // Exponential decay with slight diffusion randomness
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLen, 2.8);
+    }
+  }
+  reverbNode.buffer = irBuf;
+  reverbGain = audioCtx.createGain();
+  reverbGain.gain.value = 0.35; // wet reverb level
+  reverbNode.connect(reverbGain);
+  reverbGain.connect(masterGain);
+
+  // --- Ping-pong style delay ---
+  delayNode = audioCtx.createDelay(1.0);
+  delayNode.delayTime.value = 0.375; // dotted eighth at ~140bpm
+  delayFeedback = audioCtx.createGain();
+  delayFeedback.gain.value = 0.35; // feedback amount
+  delayGain = audioCtx.createGain();
+  delayGain.gain.value = 0.25; // delay wet level
+  // Delay feedback loop
+  delayNode.connect(delayFeedback);
+  delayFeedback.connect(delayNode);
+  // Delay also feeds into reverb for washy tails
+  delayNode.connect(delayGain);
+  delayGain.connect(masterGain);
+  delayNode.connect(reverbNode);
+}
+
+// Send bus: dry + delay + reverb
+function connectToFX(node) {
+  node.connect(dryGain);
+  node.connect(delayNode);
+  node.connect(reverbNode);
+}
+
+function playSound(freq, duration, type='square', vol=0.15, fx=false) {
   ensureAudio();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -41,7 +94,11 @@ function playSound(freq, duration, type='square', vol=0.15) {
   gain.gain.setValueAtTime(vol, audioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
   osc.connect(gain);
-  gain.connect(audioCtx.destination);
+  if (fx) {
+    connectToFX(gain);
+  } else {
+    gain.connect(audioCtx.destination);
+  }
   osc.start();
   osc.stop(audioCtx.currentTime + duration);
 }
@@ -109,9 +166,9 @@ function playMusic() {
       const ft = t;
       setTimeout(() => {
         if (musicPlaying && gameState === 'playing') {
-          playSound(freq, beat * dur * 0.85, 'sine', 0.07);
+          playSound(freq, beat * dur * 0.85, 'sine', 0.07, true);
           // Add a detuned echo for spacey feel
-          playSound(freq * 1.005, beat * dur * 0.6, 'sine', 0.03);
+          playSound(freq * 1.005, beat * dur * 0.6, 'sine', 0.03, true);
         }
       }, ft * 1000);
     }
@@ -124,7 +181,7 @@ function playMusic() {
     if (freq > 0) {
       const fbt = bt;
       setTimeout(() => {
-        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.9, 'triangle', 0.09);
+        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.9, 'triangle', 0.09, true);
       }, fbt * 1000);
     }
     bt += beat * dur;
@@ -138,7 +195,7 @@ function playMusic() {
       if (at >= totalTime) break;
       const fat = at;
       setTimeout(() => {
-        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.5, 'sine', 0.025);
+        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.5, 'sine', 0.025, true);
       }, fat * 1000);
       at += beat * dur;
     }
