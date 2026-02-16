@@ -2238,9 +2238,10 @@ function render() {
     ctx.save();
     const swirl = tube.frame * 0.05;
     const grd = ctx.createRadialGradient(tx+TILE, ty+TILE, 5, tx+TILE, ty+TILE, TILE*1.2);
-    grd.addColorStop(0, tube.color);
-    grd.addColorStop(0.5, tube.color + '88');
-    grd.addColorStop(1, 'transparent');
+    const tc = tube.color.length === 4 ? '#' + tube.color[1]+tube.color[1] + tube.color[2]+tube.color[2] + tube.color[3]+tube.color[3] : tube.color;
+    grd.addColorStop(0, tc);
+    grd.addColorStop(0.5, tc + '88');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = grd;
     ctx.fillRect(tx-10, ty-10, TILE*2+20, TILE*2+20);
     for (let r = 0; r < 3; r++) {
