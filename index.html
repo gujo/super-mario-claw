@@ -2784,6 +2784,15 @@ function render() {
 
   // Boss
   drawBoss(cameraX, 0);
+  // DEBUG: show boss state
+  if (BOSS_LEVELS.includes(level)) {
+    ctx.save();
+    ctx.fillStyle = '#FF0';
+    ctx.font = '12px monospace';
+    ctx.fillText(`BOSS: ${boss ? 'EXISTS' : 'NULL'} ${boss ? 'hp='+boss.hp+' def='+boss.defeated+' x='+Math.round(boss.x)+' y='+Math.round(boss.y) : ''}`, 10, 60);
+    ctx.fillText(`Player x=${Math.round(player.x)} cam=${Math.round(cameraX)}`, 10, 75);
+    ctx.restore();
+  }
 
   // Jellyfish
   for (const jelly of jellyList) {
