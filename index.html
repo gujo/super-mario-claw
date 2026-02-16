@@ -2,16 +2,56 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="screen-orientation" content="landscape">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Super Mario Claw</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: none; }
 canvas { image-rendering: pixelated; border: 2px solid #333; }
+#mobile-controls { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+#mobile-controls .btn { pointer-events: auto; position: absolute; background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 12px; color: rgba(255,255,255,0.6); font-family: monospace; font-weight: bold; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; transition: background 0.05s; }
+#mobile-controls .btn:active, #mobile-controls .btn.pressed { background: rgba(255,255,255,0.35); border-color: rgba(255,255,255,0.5); }
+/* D-pad */
+#dpad { position: absolute; left: 16px; bottom: 20px; width: 140px; height: 140px; }
+#dpad .btn { width: 46px; height: 46px; font-size: 20px; }
+#btn-up { left: 47px; top: 0; }
+#btn-down { left: 47px; bottom: 0; }
+#btn-left { left: 0; top: 47px; }
+#btn-right { right: 0; top: 47px; }
+/* Action buttons */
+#action-btns { position: absolute; right: 16px; bottom: 20px; width: 140px; height: 140px; }
+#action-btns .btn { width: 54px; height: 54px; border-radius: 50%; font-size: 14px; }
+#btn-a { right: 0; top: 20px; } /* Jump */
+#btn-b { left: 0; top: 50px; } /* Shoot */
+#btn-start { bottom: 10px; left: 50%; transform: translateX(-50%); width: 70px; height: 30px; font-size: 10px; border-radius: 15px; }
+@media (orientation: portrait) {
+  #rotate-msg { display: flex !important; }
+  #game, #mobile-controls { display: none !important; }
+}
 </style>
 </head>
 <body>
+<div id="rotate-msg" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;color:#FFF;font-family:monospace;align-items:center;justify-content:center;flex-direction:column;z-index:999;font-size:18px;text-align:center;">
+  <div style="font-size:48px;margin-bottom:20px;">🔄</div>
+  <div>Rotate your phone to landscape!</div>
+</div>
 <canvas id="game" width="800" height="480"></canvas>
+<div id="mobile-controls">
+  <div id="dpad">
+    <div class="btn" id="btn-up">▲</div>
+    <div class="btn" id="btn-down">▼</div>
+    <div class="btn" id="btn-left">◄</div>
+    <div class="btn" id="btn-right">►</div>
+  </div>
+  <div id="action-btns">
+    <div class="btn" id="btn-a">A<br><span style="font-size:8px">JUMP</span></div>
+    <div class="btn" id="btn-b">B<br><span style="font-size:8px">FIRE</span></div>
+  </div>
+  <div class="btn" id="btn-start">START</div>
+</div>
 <script>
 // ============================================================
 // SUPER MARIO CLAW — A Mario-style platformer with crabs!
@@ -3157,6 +3197,107 @@ function gameLoop() {
 }
 
 gameLoop();
+
+// --- MOBILE CONTROLS ---
+(function() {
+  const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024);
+  if (!isMobile) return;
+
+  const controls = document.getElementById('mobile-controls');
+  controls.style.display = 'block';
+
+  // Resize canvas to fill screen
+  function resizeCanvas() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.style.border = 'none';
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Lock landscape if possible
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(() => {});
+  }
+
+  // Button-to-key mapping
+  const btnMap = {
+    'btn-up': 'ArrowUp',
+    'btn-down': 'ArrowDown',
+    'btn-left': 'ArrowLeft',
+    'btn-right': 'ArrowRight',
+    'btn-a': 'Space',
+    'btn-b': 'KeyX',
+    'btn-start': 'Enter'
+  };
+
+  function press(id) {
+    const key = btnMap[id];
+    if (key) { keys[key] = true; }
+    const el = document.getElementById(id);
+    if (el) el.classList.add('pressed');
+  }
+
+  function release(id) {
+    const key = btnMap[id];
+    if (key) { keys[key] = false; }
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('pressed');
+  }
+
+  // Track active touches per button
+  const activeTouches = {};
+
+  function handleTouchStart(e) {
+    e.preventDefault();
+    for (const touch of e.changedTouches) {
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (el && el.classList.contains('btn')) {
+        activeTouches[touch.identifier] = el.id;
+        press(el.id);
+      }
+    }
+  }
+
+  function handleTouchEnd(e) {
+    e.preventDefault();
+    for (const touch of e.changedTouches) {
+      const id = activeTouches[touch.identifier];
+      if (id) {
+        release(id);
+        delete activeTouches[touch.identifier];
+      }
+    }
+  }
+
+  function handleTouchMove(e) {
+    e.preventDefault();
+    for (const touch of e.changedTouches) {
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const oldId = activeTouches[touch.identifier];
+      const newId = el && el.classList.contains('btn') ? el.id : null;
+      if (oldId !== newId) {
+        if (oldId) release(oldId);
+        if (newId) press(newId);
+        if (newId) activeTouches[touch.identifier] = newId;
+        else delete activeTouches[touch.identifier];
+      }
+    }
+  }
+
+  document.addEventListener('touchstart', handleTouchStart, {passive: false});
+  document.addEventListener('touchend', handleTouchEnd, {passive: false});
+  document.addEventListener('touchcancel', handleTouchEnd, {passive: false});
+  document.addEventListener('touchmove', handleTouchMove, {passive: false});
+
+  // Prevent zoom/scroll
+  document.addEventListener('gesturestart', e => e.preventDefault());
+
+  // Also make canvas tap trigger ensureAudio (needed for mobile audio policy)
+  canvas.addEventListener('touchstart', () => { ensureAudio(); }, {once: true});
+})();
 </script>
 </body>
 </html>
