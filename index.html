@@ -61,67 +61,93 @@ let musicTimeout = null;
 function playMusic() {
   if (!audioCtx) return;
   musicPlaying = true;
+  const now = audioCtx.currentTime;
+  const bpm = 140;
+  const beat = 60 / bpm;
 
-  // Mario-inspired chiptune melody
-  const bpm = 200;
-  const beat = 60000 / bpm;
+  // Psychedelic melody — spacey, trippy, with slides and weird intervals
   const melody = [
-    // Phrase 1 - classic Mario feel
-    [659,1],[659,1],[0,1],[659,1],[0,1],[523,1],[659,1],[0,1],
-    [784,1],[0,3],[392,1],[0,3],
-    // Phrase 2
-    [523,1],[0,1],[392,1],[0,1],[330,1],[0,1],
-    [440,1],[0,1],[494,1],[0,1],[466,1],[440,1],[0,1],
-    [392,1],[659,1],[784,1],[880,1],[0,1],
-    [698,1],[784,1],[0,1],[659,1],[0,1],[523,1],[587,1],[494,1],[0,1],
-    // Phrase 3 - underwater vibe
-    [523,2],[587,1],[659,2],[523,1],[0,1],
-    [440,2],[440,1],[0,1],
-    [523,2],[587,1],[659,2],[0,2],
-    [523,1],[494,1],[440,1],[392,1],[0,2],
-    // Phrase 4 - bouncy
-    [659,1],[698,1],[784,1],[0,1],[784,1],[698,1],[659,1],[587,1],
-    [523,1],[523,1],[587,1],[659,1],[587,1],[0,1],[523,1],[0,1],
-    [440,1],[440,1],[494,1],[523,1],[494,1],[0,1],[440,1],[0,3],
+    // Phrase 1 — dreamy ascending
+    [440,1],[0,0.5],[523,1],[587,1.5],[0,0.5],
+    [659,1],[698,0.5],[659,1],[0,1],
+    [523,1.5],[440,1],[392,2],[0,1],
+    // Phrase 2 — descending with chromatic weirdness
+    [784,1],[740,0.5],[698,1],[659,0.5],[622,0.5],[587,1.5],[0,1],
+    [523,1],[554,0.5],[587,1],[523,1.5],[0,1],
+    [440,2],[466,1],[440,1],[392,2],[0,1],
+    // Phrase 3 — bouncy psychedelic
+    [659,0.5],[0,0.25],[659,0.5],[784,1],[880,0.5],[784,1],[0,0.5],
+    [698,0.5],[659,0.5],[587,1],[523,0.5],[587,1.5],[0,1],
+    [440,1],[523,1],[659,1],[784,0.5],[880,1.5],[0,1],
+    // Phrase 4 — ethereal
+    [1047,2],[988,1],[880,1],[784,2],[0,1],
+    [659,1.5],[587,1],[523,1.5],[440,2],[0,2],
   ];
 
-  // Bass line
+  // Deep bass — slow, heavy
   const bass = [
-    [131,2],[131,2],[165,2],[165,2],
-    [175,2],[175,2],[131,2],[131,2],
-    [147,2],[147,2],[165,2],[165,2],
-    [175,2],[175,2],[196,2],[196,2],
-    [131,2],[131,2],[165,2],[165,2],
-    [175,2],[175,2],[131,2],[131,2],
-    [147,2],[147,2],[110,2],[110,2],
-    [131,2],[131,2],[165,2],[165,2],
+    [110,3],[0,1],[131,3],[0,1],
+    [147,3],[0,1],[110,3],[0,1],
+    [165,3],[0,1],[147,3],[0,1],
+    [131,3],[0,1],[110,2],[131,2],
+    [147,3],[0,1],[165,3],[0,1],
+    [131,2],[110,2],[98,3],[0,1],
   ];
 
+  // Arpeggio layer — shimmery
+  const arp = [
+    [880,0.25],[1047,0.25],[1319,0.25],[1047,0.25],
+    [880,0.25],[698,0.25],[880,0.25],[1047,0.25],
+    [784,0.25],[988,0.25],[1175,0.25],[988,0.25],
+    [784,0.25],[659,0.25],[784,0.25],[988,0.25],
+  ];
+
+  // Schedule melody
   let t = 0;
   for (const [freq, dur] of melody) {
     if (freq > 0) {
-      const time = t;
+      const ft = t;
       setTimeout(() => {
-        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur / 1000 * 0.8, 'square', 0.06);
-      }, t);
+        if (musicPlaying && gameState === 'playing') {
+          playSound(freq, beat * dur * 0.85, 'sine', 0.07);
+          // Add a detuned echo for spacey feel
+          playSound(freq * 1.005, beat * dur * 0.6, 'sine', 0.03);
+        }
+      }, ft * 1000);
     }
     t += beat * dur;
   }
 
-  // Bass
+  // Schedule bass
   let bt = 0;
   for (const [freq, dur] of bass) {
-    const time = bt;
-    setTimeout(() => {
-      if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur / 1000 * 0.9, 'triangle', 0.08);
-    }, bt);
+    if (freq > 0) {
+      const fbt = bt;
+      setTimeout(() => {
+        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.9, 'triangle', 0.09);
+      }, fbt * 1000);
+    }
     bt += beat * dur;
+  }
+
+  // Schedule arpeggios — repeating shimmer throughout
+  const totalTime = t;
+  let at = 0;
+  while (at < totalTime) {
+    for (const [freq, dur] of arp) {
+      if (at >= totalTime) break;
+      const fat = at;
+      setTimeout(() => {
+        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.5, 'sine', 0.025);
+      }, fat * 1000);
+      at += beat * dur;
+    }
   }
 
   // Loop
   musicTimeout = setTimeout(() => {
     if (musicPlaying && gameState === 'playing') playMusic();
-  }, t);
+  }, totalTime * 1000);
 }
 
 function stopMusic() {
@@ -481,7 +507,8 @@ let player = {
   frame: 0, frameTimer: 0,
   invincible: 0, big: false,
   starTimer: 0, starFlash: 0,
-  laserTimer: 0, laserCooldown: 0
+  laserTimer: 0, laserCooldown: 0,
+  mushroomTimer: 0
 };
 
 // --- ENTITIES ---
@@ -511,18 +538,20 @@ function loadLevel(n) {
   player.big = false;
   player.laserTimer = 0;
   player.laserCooldown = 0;
+  player.mushroomTimer = 0;
 
   // Assign powerups to question blocks — laser is always first!
   const qBlocks = levelTiles.filter(t => t.t === 3);
-  if (qBlocks.length >= 1) qBlocks[0].powerup = 'laser';  // FIRST ? = always laser
+  if (qBlocks.length >= 1) qBlocks[0].powerup = 'laser';
   if (qBlocks.length >= 2) qBlocks[1].powerup = 'crab';
-  if (qBlocks.length >= 3) qBlocks[2].powerup = 'starfish';
-  if (qBlocks.length >= 4) qBlocks[3].powerup = 'oneup';
-  // Remaining ? blocks get random powerups
-  for (let i = 4; i < qBlocks.length; i++) {
+  if (qBlocks.length >= 3) qBlocks[2].powerup = 'mushroom'; // MAGIC MUSHROOM
+  if (qBlocks.length >= 4) qBlocks[3].powerup = 'starfish';
+  if (qBlocks.length >= 5) qBlocks[4].powerup = 'oneup';
+  for (let i = 5; i < qBlocks.length; i++) {
     const r = Math.random();
-    if (r < 0.35) qBlocks[i].powerup = 'laser';
-    else if (r < 0.55) qBlocks[i].powerup = 'crab';
+    if (r < 0.25) qBlocks[i].powerup = 'laser';
+    else if (r < 0.4) qBlocks[i].powerup = 'crab';
+    else if (r < 0.55) qBlocks[i].powerup = 'mushroom';
     else if (r < 0.7) qBlocks[i].powerup = 'starfish';
     else if (r < 0.8) qBlocks[i].powerup = 'oneup';
     // else: coin (default)
@@ -613,7 +642,10 @@ function worldCollide(entity) {
         if (tile && tile.t === 3 && !questionHit.has(`${tx},${top}`)) {
           questionHit.add(`${tx},${top}`);
           // Some question blocks spawn powerups
-          if (tile.powerup === 'laser') {
+          if (tile.powerup === 'mushroom') {
+            spawnPowerup(tx, top, 'mushroom');
+            sfxPowerup();
+          } else if (tile.powerup === 'laser') {
             spawnPowerup(tx, top, 'laser');
             sfxPowerup();
           } else if (tile.powerup === 'crab') {
@@ -675,14 +707,23 @@ function drawPixelChar(x, y, facing, frame) {
   // Star flash — cycle through rainbow colors
   let bodyColor = '#E84040';
   let hatColor = '#E84040';
+  let skinColor = '#FFB880';
+  let jeansColor = '#2a2a3a';
+  let shoeColor = '#FFF';
   if (player.starTimer > 0) {
     const starColors = ['#FF0000','#FF8800','#FFFF00','#00FF00','#0088FF','#8800FF'];
     const ci = Math.floor(player.starFlash / 4) % starColors.length;
     bodyColor = starColors[ci];
     hatColor = starColors[(ci + 2) % starColors.length];
-    // Star glow
     ctx.shadowColor = '#FFD700';
     ctx.shadowBlur = 15;
+  }
+  // Mushroom trip color shift
+  if (player.mushroomTimer > 0) {
+    const hShift = Math.sin(Date.now() * 0.005) * 30;
+    skinColor = `hsl(${30 + hShift}, 80%, 75%)`;
+    bodyColor = `hsl(${0 + hShift}, 70%, 55%)`;
+    hatColor = bodyColor;
   }
 
   if (player.invincible > 0 && player.starTimer <= 0 && Math.floor(player.invincible / 3) % 2) {
@@ -690,75 +731,168 @@ function drawPixelChar(x, y, facing, frame) {
   }
 
   // Scale up if big
-  const scale = player.big ? 1.3 : 1;
+  const sc = player.big ? 1.3 : 1;
   const ox = player.big ? -4 : 0;
   const oy = player.big ? -10 : 0;
-
   ctx.translate(px + ox, py + oy);
-  ctx.scale(scale, scale);
+  ctx.scale(sc, sc);
   ctx.translate(-(px + ox), -(py + oy));
 
-  // Hoodie body
-  ctx.fillStyle = bodyColor;
-  ctx.fillRect(px + 3, py + 8, 18, 14);
+  // Determine animation state
+  const isJumping = !player.onGround;
+  const isRunning = Math.abs(player.vx) > 0.5;
+  const runCycle = Math.sin(frame * 0.4); // smooth sine for leg/arm swing
+  const breathe = Math.sin(Date.now() * 0.003) * 0.5; // subtle idle breathing
 
-  // Head
-  ctx.fillStyle = '#FFB880';
-  ctx.fillRect(px + 6, py, 12, 10);
+  // Body tilt when running
+  const tilt = isRunning ? facing * Math.sin(frame * 0.15) * 0.03 : 0;
+  ctx.translate(px + 12, py + 16);
+  ctx.rotate(tilt);
+  ctx.translate(-(px + 12), -(py + 16));
+
+  // --- ARMS ---
+  const armSwing = isRunning ? runCycle * 6 : (isJumping ? -4 : breathe);
+  // Back arm
+  ctx.fillStyle = bodyColor;
+  const backArmX = facing > 0 ? px + 1 : px + 17;
+  ctx.save();
+  ctx.translate(backArmX + 3, py + 10);
+  ctx.rotate((facing > 0 ? -1 : 1) * armSwing * 0.05);
+  ctx.fillRect(-3, 0, 5, 10);
+  ctx.fillStyle = skinColor;
+  ctx.fillRect(-2, 9, 4, 3); // hand
+  ctx.restore();
+
+  // --- HOODIE BODY (rounded) ---
+  ctx.fillStyle = bodyColor;
+  // Main torso
+  ctx.beginPath();
+  ctx.moveTo(px + 5, py + 8);
+  ctx.lineTo(px + 19, py + 8);
+  ctx.quadraticCurveTo(px + 22, py + 10, px + 21, py + 22);
+  ctx.lineTo(px + 3, py + 22);
+  ctx.quadraticCurveTo(px + 2, py + 10, px + 5, py + 8);
+  ctx.fill();
+
+  // --- HEAD (rounder) ---
+  ctx.fillStyle = skinColor;
+  ctx.beginPath();
+  ctx.ellipse(px + 12, py + 4, 7, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
 
   // Hoodie hood
   ctx.fillStyle = hatColor;
-  ctx.fillRect(px + 4, py - 2, 16, 7);
-  ctx.fillRect(px + 5, py + 5, 14, 3);
+  ctx.beginPath();
+  ctx.ellipse(px + 12, py + 1, 8, 5, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(px + 4, py + 1, 16, 4);
 
   // Headphones
   ctx.fillStyle = '#333';
-  ctx.fillRect(px + 3, py + 1, 3, 6);
-  ctx.fillRect(px + 18, py + 1, 3, 6);
-  ctx.fillRect(px + 5, py - 2, 14, 2);
+  ctx.fillRect(px + 3, py + 0, 3, 5);
+  ctx.fillRect(px + 18, py + 0, 3, 5);
+  ctx.fillStyle = '#444';
+  ctx.fillRect(px + 5, py - 3, 14, 3);
 
-  // Sunglasses (cool devs wear shades)
+  // Sunglasses
   ctx.fillStyle = '#111';
+  const glassY = py + 3;
   if (facing > 0) {
-    ctx.fillRect(px + 10, py + 3, 8, 4);
+    ctx.fillRect(px + 9, glassY, 9, 4);
+    ctx.fillRect(px + 7, glassY + 1, 2, 2); // bridge
     ctx.fillStyle = '#0FF';
-    ctx.fillRect(px + 14, py + 4, 3, 2); // lens glint
+    ctx.fillRect(px + 15, glassY + 1, 2, 2);
   } else {
-    ctx.fillRect(px + 6, py + 3, 8, 4);
+    ctx.fillRect(px + 6, glassY, 9, 4);
+    ctx.fillRect(px + 15, glassY + 1, 2, 2);
     ctx.fillStyle = '#0FF';
-    ctx.fillRect(px + 7, py + 4, 3, 2);
+    ctx.fillRect(px + 7, glassY + 1, 2, 2);
   }
 
-  // Hoodie pocket / code symbol
-  ctx.fillStyle = '#FFF';
-  ctx.font = '7px monospace';
-  ctx.fillText('{;}', px + 5, py + 19);
+  // Mouth (subtle)
+  if (isJumping) {
+    ctx.fillStyle = '#c88060';
+    ctx.fillRect(px + 11, py + 7, 3, 2); // open mouth when jumping
+  }
 
-  // Legs (dark jeans)
-  ctx.fillStyle = '#2a2a3a';
-  const legOffset = Math.sin(frame * 0.3) * 3;
-  ctx.fillRect(px + 5, py + 22, 6, 8);
-  ctx.fillRect(px + 13, py + 22, 6, 8);
+  // Hoodie pocket
+  ctx.fillStyle = hatColor === bodyColor ? '#FFF' : '#DDD';
+  ctx.font = '6px monospace';
+  ctx.fillText('{;}', px + 6, py + 19);
 
-  // Sneakers
-  ctx.fillStyle = '#FFF';
-  ctx.fillRect(px + 3, py + 28, 8, 4);
-  ctx.fillRect(px + 13, py + 28, 8, 4);
-  ctx.fillStyle = '#E84040';
-  ctx.fillRect(px + 4, py + 29, 6, 2);
-  ctx.fillRect(px + 14, py + 29, 6, 2);
+  // --- FRONT ARM ---
+  ctx.fillStyle = bodyColor;
+  const frontArmX = facing > 0 ? px + 17 : px + 1;
+  ctx.save();
+  ctx.translate(frontArmX + 3, py + 10);
+  ctx.rotate((facing > 0 ? 1 : -1) * armSwing * 0.05);
+  ctx.fillRect(-3, 0, 5, 10);
+  ctx.fillStyle = skinColor;
+  ctx.fillRect(-2, 9, 4, 3);
+  ctx.restore();
 
-  // Laser arm glow when laser is active
+  // Laser arm glow
   if (player.laserTimer > 0) {
     ctx.shadowColor = '#0FF';
     ctx.shadowBlur = 8 + Math.sin(Date.now() * 0.01) * 4;
     ctx.fillStyle = '#0FF';
-    if (player.facing > 0) {
-      ctx.fillRect(px + 18, py + 12, 6, 4);
-    } else {
-      ctx.fillRect(px, py + 12, 6, 4);
-    }
+    const laserArmX = facing > 0 ? px + 19 : px - 1;
+    ctx.fillRect(laserArmX, py + 12, 5, 4);
     ctx.shadowBlur = 0;
+  }
+
+  // --- LEGS with animation ---
+  ctx.fillStyle = jeansColor;
+  if (isJumping) {
+    // Jumping pose — legs tucked or spread
+    const jumpPhase = player.vy < 0 ? 1 : -1;
+    ctx.save();
+    ctx.translate(px + 8, py + 22);
+    ctx.rotate(-0.15 * jumpPhase);
+    ctx.fillRect(-3, 0, 5, 9);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(px + 16, py + 22);
+    ctx.rotate(0.15 * jumpPhase);
+    ctx.fillRect(-3, 0, 5, 9);
+    ctx.restore();
+    // Shoes
+    ctx.fillStyle = shoeColor;
+    ctx.fillRect(px + 3, py + 29, 7, 3);
+    ctx.fillRect(px + 14, py + 29, 7, 3);
+  } else if (isRunning) {
+    // Running legs — alternating stride
+    const stride = runCycle * 5;
+    ctx.save();
+    ctx.translate(px + 8, py + 22);
+    ctx.rotate(stride * 0.06);
+    ctx.fillRect(-3, 0, 5, 9);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(px + 16, py + 22);
+    ctx.rotate(-stride * 0.06);
+    ctx.fillRect(-3, 0, 5, 9);
+    ctx.restore();
+    // Shoes with motion blur
+    ctx.fillStyle = shoeColor;
+    const shoeOff1 = Math.sin(frame * 0.4) * 3;
+    const shoeOff2 = Math.sin(frame * 0.4 + Math.PI) * 3;
+    ctx.fillRect(px + 3 + shoeOff1, py + 29, 7, 3);
+    ctx.fillRect(px + 14 + shoeOff2, py + 29, 7, 3);
+    ctx.fillStyle = '#E84040';
+    ctx.fillRect(px + 4 + shoeOff1, py + 30, 5, 2);
+    ctx.fillRect(px + 15 + shoeOff2, py + 30, 5, 2);
+  } else {
+    // Idle — subtle breathing bob
+    const bob = breathe * 0.5;
+    ctx.fillRect(px + 5, py + 22 + bob, 5, 9);
+    ctx.fillRect(px + 14, py + 22 + bob, 5, 9);
+    ctx.fillStyle = shoeColor;
+    ctx.fillRect(px + 3, py + 29 + bob, 7, 3);
+    ctx.fillRect(px + 14, py + 29 + bob, 7, 3);
+    ctx.fillStyle = '#E84040';
+    ctx.fillRect(px + 4, py + 30 + bob, 5, 2);
+    ctx.fillRect(px + 15, py + 30 + bob, 5, 2);
   }
 
   ctx.restore();
@@ -1269,12 +1403,21 @@ function update() {
         sfxOneUp();
         floatTexts.push({x: pu.x, y: pu.y - 10, text: '1-UP!', timer: 60, vy: -1.5});
       } else if (pu.type === 'laser') {
-        player.laserTimer = 600; // ~10 seconds
+        player.laserTimer = 600;
         score += 300;
         sfxPowerup();
         floatTexts.push({x: pu.x, y: pu.y - 10, text: '⚡ VIBE LASER! [X] to pew pew!', timer: 90, vy: -1});
+      } else if (pu.type === 'mushroom') {
+        player.mushroomTimer = 600; // ~10 seconds of trip
+        score += 420;
+        // Trippy sound
+        playSound(300, 0.2, 'sine', 0.1);
+        setTimeout(() => playSound(350, 0.3, 'sine', 0.12), 100);
+        setTimeout(() => playSound(280, 0.4, 'sine', 0.1), 250);
+        setTimeout(() => playSound(400, 0.3, 'sine', 0.08), 400);
+        floatTexts.push({x: pu.x, y: pu.y - 10, text: '🍄 MAGIC MUSHROOM! 🍄', timer: 90, vy: -1});
       }
-      const puColor = pu.type === 'oneup' ? '#0F0' : pu.type === 'laser' ? '#0FF' : pu.type === 'crab' ? '#F66' : '#FFD700';
+      const puColor = pu.type === 'mushroom' ? '#F0F' : pu.type === 'oneup' ? '#0F0' : pu.type === 'laser' ? '#0FF' : pu.type === 'crab' ? '#F66' : '#FFD700';
       for (let i = 0; i < 8; i++) {
         particles.push({x: pu.x+12, y: pu.y+12, vx: (Math.random()-0.5)*5, vy: -Math.random()*4-1, life: 30, color: puColor, size: 4});
       }
@@ -1291,6 +1434,7 @@ function update() {
 
   // Laser timer & shooting
   if (player.laserTimer > 0) player.laserTimer--;
+  if (player.mushroomTimer > 0) player.mushroomTimer--;
   if (player.laserCooldown > 0) player.laserCooldown--;
   if (player.laserTimer > 0 && (keys['KeyX'] || keys['KeyZ'] || keys['ControlLeft'] || keys['ControlRight']) && player.laserCooldown <= 0) {
     lasers.push({
@@ -1893,6 +2037,38 @@ function render() {
       ctx.font = 'bold 14px monospace';
       ctx.fillText('⚡', ppx + 4, ppy + 17);
       ctx.restore();
+    } else if (pu.type === 'mushroom') {
+      // Magic mushroom — psychedelic colors
+      const hue = (Date.now() * 0.1) % 360;
+      ctx.save();
+      ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+      ctx.shadowBlur = 8;
+      // Stem
+      ctx.fillStyle = '#EEE';
+      ctx.fillRect(ppx + 8, ppy + 12, 8, 10);
+      // Cap
+      ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
+      ctx.beginPath();
+      ctx.arc(ppx + 12, ppy + 10, 11, Math.PI, 0);
+      ctx.fill();
+      // Spots
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.arc(ppx + 8, ppy + 5, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ppx + 16, ppy + 6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ppx + 12, ppy + 2, 2, 0, Math.PI * 2);
+      ctx.fill();
+      // Eyes (trippy spiral eyes)
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(ppx + 9, ppy + 14, 2, 0, Math.PI * 2);
+      ctx.arc(ppx + 15, ppy + 14, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
@@ -1964,6 +2140,43 @@ function render() {
       ctx.fillStyle = `hsla(${(hue + i * 45) % 360}, 100%, 80%, 0.5)`;
       ctx.fillRect(sx, sy, 4, 4);
     }
+    ctx.restore();
+  }
+
+  // Mushroom trip overlay
+  if (player.mushroomTimer > 0 && gameState === 'playing') {
+    ctx.save();
+    const tripIntensity = Math.min(player.mushroomTimer / 100, 1);
+    // Rainbow hue cycling overlay
+    const hue = (Date.now() * 0.08) % 360;
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.08 * tripIntensity;
+    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Wobble — draw wavy horizontal distortion
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.04 * tripIntensity;
+    for (let sy = 0; sy < canvas.height; sy += 30) {
+      const wobX = Math.sin(sy * 0.05 + Date.now() * 0.003) * 8 * tripIntensity;
+      ctx.fillStyle = `hsl(${(hue + sy) % 360}, 100%, 70%)`;
+      ctx.fillRect(wobX, sy, canvas.width, 2);
+    }
+    ctx.globalAlpha = 1;
+    // Floating hallucination particles
+    for (let i = 0; i < 5; i++) {
+      const fx = (Date.now() * 0.02 + i * 200) % canvas.width;
+      const fy = (Math.sin(Date.now() * 0.001 + i * 3) + 1) * canvas.height * 0.4;
+      const fhue = (hue + i * 72) % 360;
+      ctx.fillStyle = `hsla(${fhue}, 100%, 70%, ${0.3 * tripIntensity})`;
+      ctx.font = '20px serif';
+      ctx.fillText(['🍄','✨','🌀','💫','🌈'][i], fx, fy);
+    }
+    // Timer indicator
+    ctx.fillStyle = '#F0F';
+    ctx.font = 'bold 12px monospace';
+    ctx.globalAlpha = 0.7;
+    ctx.fillText('🍄 ' + Math.ceil(player.mushroomTimer / 60) + 's', 10, canvas.height - 10);
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 
