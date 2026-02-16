@@ -66,9 +66,9 @@ function ensureAudio() {
   delayNode = audioCtx.createDelay(1.0);
   delayNode.delayTime.value = 0.375; // dotted eighth at ~140bpm
   delayFeedback = audioCtx.createGain();
-  delayFeedback.gain.value = 0.2; // feedback amount
+  delayFeedback.gain.value = 0.35; // feedback amount
   delayGain = audioCtx.createGain();
-  delayGain.gain.value = 0.12; // delay wet level — subtle
+  delayGain.gain.value = 0.25; // delay wet level
   // Delay feedback loop
   delayNode.connect(delayFeedback);
   delayFeedback.connect(delayNode);
@@ -114,183 +114,101 @@ function sfxStar() { playSound(800, 0.08); setTimeout(() => playSound(1000, 0.08
 // --- BACKGROUND MUSIC ---
 let musicPlaying = false;
 let musicTimeout = null;
-let musicTimeouts = [];
-
-// Song data per level vibe
-const SONGS = {
-  overworld: {
-    bpm: 140,
-    melody: [[440,1],[0,0.5],[523,1],[587,1.5],[0,0.5],[659,1],[698,0.5],[659,1],[0,1],[523,1.5],[440,1],[392,2],[0,1],
-      [784,1],[740,0.5],[698,1],[659,0.5],[622,0.5],[587,1.5],[0,1],[523,1],[554,0.5],[587,1],[523,1.5],[0,1],
-      [440,2],[466,1],[440,1],[392,2],[0,1],[659,0.5],[0,0.25],[659,0.5],[784,1],[880,0.5],[784,1],[0,0.5],
-      [698,0.5],[659,0.5],[587,1],[523,0.5],[587,1.5],[0,1],[440,1],[523,1],[659,1],[784,0.5],[880,1.5],[0,1],
-      [1047,2],[988,1],[880,1],[784,2],[0,1],[659,1.5],[587,1],[523,1.5],[440,2],[0,2]],
-    bass: [[110,3],[0,1],[131,3],[0,1],[147,3],[0,1],[110,3],[0,1],[165,3],[0,1],[147,3],[0,1],[131,3],[0,1],[110,2],[131,2],[147,3],[0,1],[165,3],[0,1],[131,2],[110,2],[98,3],[0,1]],
-    arp: [[880,0.25],[1047,0.25],[1319,0.25],[1047,0.25],[880,0.25],[698,0.25],[880,0.25],[1047,0.25],[784,0.25],[988,0.25],[1175,0.25],[988,0.25],[784,0.25],[659,0.25],[784,0.25],[988,0.25]],
-    melodyType:'sine', bassType:'triangle', melodyVol:0.07, bassVol:0.09
-  },
-  night: {
-    bpm: 110,
-    melody: [[330,2],[0,1],[392,1],[370,2],[0,0.5],[330,1.5],[294,1],[0,1],[262,2],[294,1],[330,1.5],[0,1],
-      [370,2],[392,1],[440,2],[0,1],[392,1.5],[370,1],[330,2],[0,2],
-      [494,2],[440,1],[392,1.5],[0,1],[370,1],[330,2],[294,1.5],[262,2],[0,2]],
-    bass: [[82,4],[0,1],[98,4],[0,1],[110,4],[0,1],[82,4],[0,1],[98,4],[0,1],[82,3],[0,1],[73,4],[0,1]],
-    arp: [[659,0.5],[784,0.5],[988,0.5],[784,0.5],[659,0.5],[523,0.5],[659,0.5],[784,0.5]],
-    melodyType:'sine', bassType:'triangle', melodyVol:0.06, bassVol:0.07
-  },
-  underwater: {
-    bpm: 100,
-    melody: [[262,1.5],[294,0.5],[330,2],[0,0.5],[392,1],[370,1.5],[330,1],[0,1],[294,2],[262,1],[247,2],[0,1],
-      [330,1],[370,1.5],[392,1],[440,2],[0,1],[392,1],[370,1.5],[330,2],[0,1],
-      [494,1.5],[440,1],[392,2],[0,1],[370,1.5],[330,1],[294,2],[262,2],[0,2]],
-    bass: [[65,4],[0,2],[73,4],[0,2],[82,4],[0,2],[65,4],[0,2],[73,3],[65,3],[0,2]],
-    arp: [[523,0.5],[659,0.5],[784,0.5],[659,0.5],[523,0.5],[440,0.5],[523,0.5],[659,0.5]],
-    melodyType:'sine', bassType:'sine', melodyVol:0.05, bassVol:0.06
-  },
-  space: {
-    bpm: 120,
-    melody: [[440,2],[0,0.5],[494,1],[554,2],[0,1],[622,1],[659,2],[0,0.5],[554,1.5],[494,1],[440,2],[0,1],
-      [659,2],[622,1],[554,2],[0,1],[494,1.5],[440,1],[392,2],[0,1],
-      [740,2],[659,1],[622,1.5],[0,1],[554,2],[494,1],[440,2],[0,2]],
-    bass: [[55,4],[0,2],[62,4],[0,2],[69,4],[0,2],[55,4],[0,2],[62,3],[55,3],[0,2]],
-    arp: [[880,0.25],[1047,0.25],[1175,0.25],[1319,0.25],[1175,0.25],[1047,0.25],[880,0.25],[784,0.25]],
-    melodyType:'sine', bassType:'sine', melodyVol:0.05, bassVol:0.05
-  },
-  volcano: {
-    bpm: 155,
-    melody: [[220,1],[0,0.25],[233,0.5],[262,1],[294,0.5],[262,1],[0,0.5],[233,1],[220,1.5],[0,1],
-      [330,1],[349,0.5],[330,1],[294,0.5],[262,1],[233,1.5],[220,2],[0,1],
-      [175,1],[196,1],[220,1],[262,1.5],[294,1],[330,2],[0,1],[262,1.5],[220,2],[0,2]],
-    bass: [[55,2],[0,0.5],[55,1],[0,0.5],[65,2],[0,0.5],[55,2],[0,0.5],[73,2],[0,0.5],[65,1],[55,2],[0,1]],
-    arp: [[440,0.25],[523,0.25],[659,0.25],[523,0.25],[440,0.25],[349,0.25],[440,0.25],[523,0.25]],
-    melodyType:'sawtooth', bassType:'triangle', melodyVol:0.06, bassVol:0.1
-  },
-  matrix: {
-    bpm: 135,
-    melody: [[330,0.5],[0,0.25],[330,0.5],[392,1],[440,0.5],[392,1],[0,0.5],[330,0.5],[294,1],[262,0.5],[294,1.5],[0,0.5],
-      [392,0.5],[0,0.25],[440,0.5],[494,1],[523,0.5],[494,1],[440,0.5],[392,1.5],[0,1],
-      [523,1],[494,0.5],[440,1],[392,0.5],[330,1.5],[294,1],[262,2],[0,1]],
-    bass: [[82,2],[0,0.5],[82,1],[98,2],[0,0.5],[82,2],[0,0.5],[110,2],[98,2],[0,0.5],[82,2],[0,1]],
-    arp: [[659,0.125],[784,0.125],[988,0.125],[784,0.125],[659,0.125],[523,0.125],[659,0.125],[784,0.125],[988,0.125],[1175,0.125],[988,0.125],[784,0.125],[659,0.125],[523,0.125],[440,0.125],[523,0.125]],
-    melodyType:'square', bassType:'sawtooth', melodyVol:0.05, bassVol:0.08
-  },
-  candy: {
-    bpm: 160,
-    melody: [[523,0.5],[587,0.5],[659,1],[784,0.5],[659,0.5],[587,1],[523,1.5],[0,0.5],
-      [659,0.5],[698,0.5],[784,1],[880,0.5],[784,0.5],[698,1],[659,1.5],[0,0.5],
-      [784,1],[880,0.5],[988,1],[1047,1.5],[0,0.5],[880,0.5],[784,1],[659,1],[523,2],[0,1]],
-    bass: [[131,2],[0,0.5],[165,2],[0,0.5],[147,2],[0,0.5],[131,2],[0,0.5],[165,2],[147,2],[0,0.5],[131,2],[0,1]],
-    arp: [[1047,0.25],[1319,0.25],[1568,0.25],[1319,0.25],[1047,0.25],[880,0.25],[1047,0.25],[1319,0.25]],
-    melodyType:'square', bassType:'triangle', melodyVol:0.06, bassVol:0.07
-  },
-  dark: {
-    bpm: 95,
-    melody: [[196,2],[0,1],[208,1.5],[196,2],[0,0.5],[175,1.5],[165,2],[0,1],[156,2],[165,1],[175,1.5],[0,1],
-      [196,2],[208,1],[220,2],[0,1],[208,1.5],[196,1],[175,2],[0,2],
-      [247,2],[220,1],[196,2],[0,1],[175,2],[165,1.5],[156,2],[0,2]],
-    bass: [[49,4],[0,2],[52,4],[0,2],[55,4],[0,2],[49,4],[0,2],[52,3],[49,3],[0,2]],
-    arp: [[392,0.5],[440,0.5],[494,0.5],[440,0.5],[392,0.5],[330,0.5],[392,0.5],[440,0.5]],
-    melodyType:'sine', bassType:'triangle', melodyVol:0.05, bassVol:0.06
-  },
-  neon: {
-    bpm: 145,
-    melody: [[523,0.5],[0,0.25],[587,0.5],[659,1],[784,1],[0,0.5],[880,0.5],[784,1],[659,0.5],[587,1],[0,0.5],
-      [659,1],[784,0.5],[880,1],[988,1.5],[0,0.5],[880,0.5],[784,1],[659,1.5],[0,1],
-      [1047,1],[988,0.5],[880,1],[784,0.5],[659,1],[587,1.5],[523,2],[0,1]],
-    bass: [[131,1],[0,0.5],[131,1],[165,1],[0,0.5],[131,1],[147,1],[0,0.5],[131,1],[0,0.5],[165,1],[147,1],[131,2],[0,0.5]],
-    arp: [[1047,0.125],[1319,0.125],[1568,0.125],[1760,0.125],[1568,0.125],[1319,0.125],[1047,0.125],[880,0.125]],
-    melodyType:'square', bassType:'sawtooth', melodyVol:0.05, bassVol:0.08
-  },
-  void: {
-    bpm: 80,
-    melody: [[147,3],[0,1],[156,2],[147,2],[0,1],[131,3],[0,2],[139,2],[131,2],[0,1],
-      [147,2],[165,2],[175,3],[0,1],[165,2],[147,3],[0,2],
-      [131,3],[0,1],[123,2],[117,3],[0,2],[110,4],[0,3]],
-    bass: [[37,6],[0,2],[41,6],[0,2],[37,6],[0,2],[33,6],[0,3]],
-    arp: [[294,1],[330,1],[370,1],[330,1],[294,1],[262,1],[294,1],[330,1]],
-    melodyType:'sine', bassType:'sine', melodyVol:0.04, bassVol:0.05
-  },
-  boss: {
-    bpm: 170,
-    melody: [[175,0.5],[0,0.25],[175,0.5],[196,0.5],[220,1],[0,0.25],[233,0.5],[220,0.5],[196,1],[0,0.5],
-      [175,0.5],[165,0.5],[175,1],[220,0.5],[262,1],[0,0.5],[233,0.5],[220,1],[175,1.5],[0,0.5],
-      [294,1],[262,0.5],[233,1],[220,0.5],[196,1],[175,1],[165,2],[0,1]],
-    bass: [[55,1],[0,0.25],[55,0.5],[55,1],[0,0.25],[65,1],[0,0.25],[55,1],[0,0.25],[73,1],[65,0.5],[55,1],[0,0.5]],
-    arp: [[349,0.25],[440,0.25],[523,0.25],[440,0.25],[349,0.25],[294,0.25],[349,0.25],[440,0.25]],
-    melodyType:'sawtooth', bassType:'square', melodyVol:0.07, bassVol:0.1
-  }
-};
-
-// Map level numbers to songs
-const LEVEL_SONG = [null,'overworld','night','underwater','boss','space','matrix','candy','boss','neon','void'];
-
-function getSongForLevel(lvl) {
-  if (lvl >= 1 && lvl < LEVEL_SONG.length && LEVEL_SONG[lvl]) return SONGS[LEVEL_SONG[lvl]];
-  return SONGS.overworld;
-}
 
 function playMusic() {
   if (!audioCtx) return;
   musicPlaying = true;
-  // Clear any pending scheduled notes
-  for (const tid of musicTimeouts) clearTimeout(tid);
-  musicTimeouts = [];
-
-  const song = getSongForLevel(level);
-  const bpm = song.bpm;
+  const now = audioCtx.currentTime;
+  const bpm = 140;
   const beat = 60 / bpm;
+
+  // Psychedelic melody — spacey, trippy, with slides and weird intervals
+  const melody = [
+    // Phrase 1 — dreamy ascending
+    [440,1],[0,0.5],[523,1],[587,1.5],[0,0.5],
+    [659,1],[698,0.5],[659,1],[0,1],
+    [523,1.5],[440,1],[392,2],[0,1],
+    // Phrase 2 — descending with chromatic weirdness
+    [784,1],[740,0.5],[698,1],[659,0.5],[622,0.5],[587,1.5],[0,1],
+    [523,1],[554,0.5],[587,1],[523,1.5],[0,1],
+    [440,2],[466,1],[440,1],[392,2],[0,1],
+    // Phrase 3 — bouncy psychedelic
+    [659,0.5],[0,0.25],[659,0.5],[784,1],[880,0.5],[784,1],[0,0.5],
+    [698,0.5],[659,0.5],[587,1],[523,0.5],[587,1.5],[0,1],
+    [440,1],[523,1],[659,1],[784,0.5],[880,1.5],[0,1],
+    // Phrase 4 — ethereal
+    [1047,2],[988,1],[880,1],[784,2],[0,1],
+    [659,1.5],[587,1],[523,1.5],[440,2],[0,2],
+  ];
+
+  // Deep bass — slow, heavy
+  const bass = [
+    [110,3],[0,1],[131,3],[0,1],
+    [147,3],[0,1],[110,3],[0,1],
+    [165,3],[0,1],[147,3],[0,1],
+    [131,3],[0,1],[110,2],[131,2],
+    [147,3],[0,1],[165,3],[0,1],
+    [131,2],[110,2],[98,3],[0,1],
+  ];
+
+  // Arpeggio layer — shimmery
+  const arp = [
+    [880,0.25],[1047,0.25],[1319,0.25],[1047,0.25],
+    [880,0.25],[698,0.25],[880,0.25],[1047,0.25],
+    [784,0.25],[988,0.25],[1175,0.25],[988,0.25],
+    [784,0.25],[659,0.25],[784,0.25],[988,0.25],
+  ];
 
   // Schedule melody
   let t = 0;
-  for (const [freq, dur] of song.melody) {
+  for (const [freq, dur] of melody) {
     if (freq > 0) {
       const ft = t;
-      musicTimeouts.push(setTimeout(() => {
+      setTimeout(() => {
         if (musicPlaying && gameState === 'playing') {
-          playSound(freq, beat * dur * 0.85, song.melodyType, song.melodyVol, true);
-          playSound(freq * 1.005, beat * dur * 0.6, 'sine', song.melodyVol * 0.4, true);
+          playSound(freq, beat * dur * 0.85, 'sine', 0.07, true);
+          // Add a detuned echo for spacey feel
+          playSound(freq * 1.005, beat * dur * 0.6, 'sine', 0.03, true);
         }
-      }, ft * 1000));
+      }, ft * 1000);
     }
     t += beat * dur;
   }
 
   // Schedule bass
   let bt = 0;
-  for (const [freq, dur] of song.bass) {
+  for (const [freq, dur] of bass) {
     if (freq > 0) {
       const fbt = bt;
-      musicTimeouts.push(setTimeout(() => {
-        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.9, song.bassType, song.bassVol, true);
-      }, fbt * 1000));
+      setTimeout(() => {
+        if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.9, 'triangle', 0.09, true);
+      }, fbt * 1000);
     }
     bt += beat * dur;
   }
 
-  // Schedule arpeggios throughout
+  // Schedule arpeggios — repeating shimmer throughout
   const totalTime = t;
   let at = 0;
   while (at < totalTime) {
-    for (const [freq, dur] of song.arp) {
+    for (const [freq, dur] of arp) {
       if (at >= totalTime) break;
       const fat = at;
-      musicTimeouts.push(setTimeout(() => {
+      setTimeout(() => {
         if (musicPlaying && gameState === 'playing') playSound(freq, beat * dur * 0.5, 'sine', 0.025, true);
-      }, fat * 1000));
+      }, fat * 1000);
       at += beat * dur;
     }
   }
 
   // Loop
-  musicTimeouts.push(setTimeout(() => {
+  musicTimeout = setTimeout(() => {
     if (musicPlaying && gameState === 'playing') playMusic();
-  }, totalTime * 1000));
+  }, totalTime * 1000);
 }
 
 function stopMusic() {
   musicPlaying = false;
-  for (const tid of musicTimeouts) clearTimeout(tid);
-  musicTimeouts = [];
   if (musicTimeout) { clearTimeout(musicTimeout); musicTimeout = null; }
 }
 
@@ -331,27 +249,6 @@ function sfxLaser() {
   osc2.start(now + 0.03); osc2.stop(now + 0.2);
 }
 function sfxOneUp() { playSound(330, 0.1); setTimeout(() => playSound(440, 0.1), 80); setTimeout(() => playSound(550, 0.1), 160); setTimeout(() => playSound(660, 0.15), 240); }
-
-// --- VOICE LINES ---
-let voiceReady = false;
-let voiceQueue = [];
-function speakVoice(text, pitch = 1.3, rate = 0.9) {
-  if (!('speechSynthesis' in window)) return;
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.pitch = pitch;
-  utter.rate = rate;
-  utter.volume = 0.8;
-  // Try to find an Italian-ish voice, fallback to default
-  const voices = speechSynthesis.getVoices();
-  const italian = voices.find(v => v.lang.startsWith('it'));
-  if (italian) utter.voice = italian;
-  speechSynthesis.speak(utter);
-}
-// Preload voices
-if ('speechSynthesis' in window) {
-  speechSynthesis.onvoiceschanged = () => { voiceReady = true; };
-  speechSynthesis.getVoices();
-}
 
 // --- INPUT ---
 const keys = {};
@@ -461,7 +358,7 @@ const LEVELS = [
       {x:62,y:12},{x:78,y:12},{x:90,y:12}
     ],
     seagulls: [{x:25,y:3},{x:55,y:2},{x:85,y:4}],
-    tubes: [{x:30,y:11,destLevel:3,destX:5,destY:10,color:'#0FF'},{x:70,y:11,destLevel:7,destX:5,destY:10,color:'#F0F'}],
+    tubes: [{x:70,y:11,destLevel:7,destX:5,destY:10,color:'#F0F'}],
     flag: {x: 115, y: 3},
     playerStart: {x: 2, y: 12}
   },
@@ -512,7 +409,6 @@ const LEVELS = [
     ],
     urchins: [{x:42,y:12},{x:70,y:12},{x:100,y:12}],
     seagulls: [{x:20,y:2},{x:60,y:3},{x:90,y:2},{x:110,y:4}],
-    tubes: [{x:55,y:11,destLevel:5,destX:5,destY:10,color:'#F80'}],
     flag: {x: 130, y: 3},
     playerStart: {x: 2, y: 12}
   },
@@ -570,7 +466,6 @@ const LEVELS = [
     ],
     jellyfish: [{x:20,y:6},{x:42,y:5},{x:58,y:7},{x:78,y:4},{x:95,y:6},{x:118,y:5}],
     urchins: [{x:35,y:12},{x:70,y:12},{x:102,y:12},{x:125,y:12}],
-    tubes: [{x:60,y:11,destLevel:6,destX:5,destY:10,color:'#0F0'}],
     flag: {x: 140, y: 3},
     playerStart: {x: 2, y: 12}
   },
@@ -619,7 +514,6 @@ const LEVELS = [
     crabs: [{x:15,y:12},{x:35,y:12},{x:57,y:12},{x:82,y:12},{x:100,y:12},{x:130,y:12}],
     seagulls: [{x:28,y:2},{x:50,y:3},{x:75,y:2},{x:105,y:3},{x:125,y:2}],
     urchins: [{x:55,y:12},{x:88,y:12},{x:112,y:12}],
-    tubes: [{x:40,y:11,destLevel:8,destX:5,destY:10,color:'#F0F'},{x:90,y:11,destLevel:2,destX:5,destY:10,color:'#0FF'}],
     flag: {x: 150, y: 3},
     playerStart: {x: 2, y: 12}
   },
@@ -789,257 +683,6 @@ let player = {
   mushroomTimer: 0
 };
 
-// Voice system defined above (speakVoice)
-
-// --- BOSS ---
-let boss = null;
-const BOSS_LEVELS = [4, 8]; // Every 4th level has a boss
-
-function spawnBoss() {
-  const L = LEVELS[level - 1];
-  boss = {
-    x: (L.width - 15) * TILE, y: 10 * TILE,
-    w: 64, h: 56, hp: 5, maxHp: 5,
-    vx: -2, vy: 0, phase: 0, timer: 0,
-    flash: 0, shakeTimer: 0, defeated: false,
-    chargeTimer: 0, jumpTimer: 0,
-    eyeGlow: 0, color: level === 4 ? '#F0F' : '#0FF'
-  };
-}
-
-function drawBoss(bx, by) {
-  if (!boss || boss.defeated) return;
-  const b = boss;
-  const px = Math.round(b.x - bx);
-  const py = Math.round(b.y);
-  ctx.save();
-
-  // Shake when hit
-  if (b.flash > 0) {
-    ctx.translate(Math.sin(b.flash * 2) * 4, 0);
-    b.flash--;
-  }
-
-  // Psychedelic color cycling
-  const hue = (Date.now() * 0.1 + b.timer) % 360;
-  const bodyC = b.flash > 0 ? '#FFF' : `hsl(${hue}, 80%, 40%)`;
-  const shellC = b.flash > 0 ? '#FFF' : `hsl(${(hue + 120) % 360}, 90%, 50%)`;
-
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.fillRect(px - 5, py + b.h - 4, b.w + 10, 8);
-
-  // Body (big crab shape)
-  ctx.fillStyle = bodyC;
-  ctx.beginPath();
-  ctx.ellipse(px + b.w/2, py + b.h * 0.6, b.w/2 - 4, b.h * 0.4, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Shell top
-  ctx.fillStyle = shellC;
-  ctx.beginPath();
-  ctx.ellipse(px + b.w/2, py + b.h * 0.35, b.w/2, b.h * 0.35, 0, Math.PI, 0);
-  ctx.fill();
-
-  // Shell pattern — psychedelic spirals
-  ctx.strokeStyle = `hsl(${(hue + 60) % 360}, 100%, 60%)`;
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 3; i++) {
-    const angle = Date.now() * 0.003 + i * 2.1;
-    ctx.beginPath();
-    ctx.arc(px + b.w/2 + Math.cos(angle) * 8, py + b.h * 0.3 + Math.sin(angle) * 5, 5 + i * 3, 0, Math.PI);
-    ctx.stroke();
-  }
-
-  // Claws (big, menacing)
-  const clawSwing = Math.sin(Date.now() * 0.005) * 0.3;
-  for (let side = -1; side <= 1; side += 2) {
-    ctx.save();
-    ctx.translate(px + (side > 0 ? b.w - 5 : 5), py + b.h * 0.5);
-    ctx.rotate(side * clawSwing);
-    ctx.fillStyle = bodyC;
-    ctx.fillRect(side > 0 ? 0 : -18, -5, 18, 10);
-    // Pincer
-    ctx.fillStyle = shellC;
-    const pinX = side > 0 ? 14 : -18;
-    ctx.fillRect(pinX, -8, 8, 6);
-    ctx.fillRect(pinX, 4, 8, 6);
-    ctx.restore();
-  }
-
-  // Eyes — glowing, psychedelic
-  const eyeGlow = Math.sin(Date.now() * 0.008) * 0.5 + 0.5;
-  for (let side = -1; side <= 1; side += 2) {
-    const ex = px + b.w/2 + side * 14;
-    const ey = py + b.h * 0.2;
-    // Eye stalk
-    ctx.fillStyle = bodyC;
-    ctx.fillRect(ex - 3, ey - 10, 6, 12);
-    // Eye
-    ctx.fillStyle = '#FFF';
-    ctx.beginPath();
-    ctx.arc(ex, ey - 12, 7, 0, Math.PI * 2);
-    ctx.fill();
-    // Pupil — tracks player
-    const dx = player.x - b.x;
-    const pupilOff = Math.min(3, Math.max(-3, dx * 0.02));
-    ctx.fillStyle = `hsl(${(hue + 180) % 360}, 100%, ${50 + eyeGlow * 30}%)`;
-    ctx.beginPath();
-    ctx.arc(ex + pupilOff, ey - 12, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(ex + pupilOff, ey - 12, 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Crown (psychedelic king crab)
-  ctx.fillStyle = '#FFD700';
-  const crownY = py - 2;
-  ctx.fillRect(px + b.w/2 - 15, crownY, 30, 8);
-  for (let i = 0; i < 5; i++) {
-    ctx.fillRect(px + b.w/2 - 15 + i * 7, crownY - 6, 5, 6);
-  }
-  ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-  for (let i = 0; i < 3; i++) {
-    ctx.beginPath();
-    ctx.arc(px + b.w/2 - 8 + i * 8, crownY - 3, 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // HP bar
-  ctx.fillStyle = '#400';
-  ctx.fillRect(px + 5, py - 16, b.w - 10, 6);
-  ctx.fillStyle = b.hp > 2 ? '#0F0' : b.hp > 1 ? '#FF0' : '#F00';
-  ctx.fillRect(px + 5, py - 16, (b.w - 10) * (b.hp / b.maxHp), 6);
-  ctx.strokeStyle = '#FFF';
-  ctx.strokeRect(px + 5, py - 16, b.w - 10, 6);
-
-  // Name
-  ctx.fillStyle = '#FFF';
-  ctx.font = 'bold 10px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('KING CRAB', px + b.w/2, py - 20);
-  ctx.textAlign = 'left';
-
-  ctx.restore();
-}
-
-function updateBoss() {
-  if (!boss || boss.defeated) return;
-  const b = boss;
-  b.timer++;
-
-  // Gravity
-  b.vy += GRAVITY;
-  if (b.vy > 10) b.vy = 10;
-  b.y += b.vy;
-
-  // Ground collision
-  const bBottom = Math.floor((b.y + b.h) / TILE);
-  const bLeft = Math.floor(b.x / TILE);
-  const bRight = Math.floor((b.x + b.w) / TILE);
-  let onGround = false;
-  for (let tx = bLeft; tx <= bRight; tx++) {
-    if (isSolid(tx, bBottom)) {
-      b.y = bBottom * TILE - b.h;
-      b.vy = 0;
-      onGround = true;
-      break;
-    }
-  }
-
-  // AI behavior — phases get harder as HP drops
-  const aggression = 1 + (b.maxHp - b.hp) * 0.3;
-
-  // Movement — patrol and chase
-  b.chargeTimer++;
-  if (b.chargeTimer > 120 / aggression) {
-    b.vx = player.x > b.x ? 2.5 * aggression : -2.5 * aggression;
-    if (b.chargeTimer > 160 / aggression) b.chargeTimer = 0;
-  } else {
-    b.vx *= 0.95;
-  }
-  b.x += b.vx;
-
-  // Jump occasionally
-  b.jumpTimer++;
-  if (onGround && b.jumpTimer > 90 / aggression) {
-    b.vy = -10 - aggression * 2;
-    b.jumpTimer = 0;
-    // Screen shake
-    b.shakeTimer = 10;
-  }
-
-  // Wall bounds
-  const L = LEVELS[level - 1];
-  if (b.x < 0) { b.x = 0; b.vx = Math.abs(b.vx); }
-  if (b.x + b.w > L.width * TILE) { b.x = L.width * TILE - b.w; b.vx = -Math.abs(b.vx); }
-
-  // Player collision
-  const px = player.x, py = player.y, pw = player.width, ph = player.height;
-  if (px + pw > b.x && px < b.x + b.w && py + ph > b.y && py < b.y + b.h) {
-    // Stomp from above
-    if (player.vy > 0 && py + ph < b.y + b.h * 0.4) {
-      b.hp--;
-      b.flash = 15;
-      player.vy = -12;
-      score += 200;
-      playSound(150, 0.2, 'sawtooth', 0.2);
-      playSound(100, 0.3, 'square', 0.15);
-      floatTexts.push({x: b.x + 20, y: b.y - 10, text: b.hp > 0 ? `OUCH! ${b.hp}/${b.maxHp}` : 'K.O.!!!', timer: 50, vy: -2});
-      for (let i = 0; i < 12; i++) {
-        particles.push({x: b.x + 32, y: b.y, vx: (Math.random()-0.5)*8, vy: -Math.random()*6-2, life: 30, color: `hsl(${Math.random()*360},100%,60%)`, size: 4 + Math.random()*4});
-      }
-      if (b.hp <= 0) {
-        b.defeated = true;
-        score += 5000;
-        // Victory explosion
-        for (let i = 0; i < 30; i++) {
-          particles.push({x: b.x + 32, y: b.y + 28, vx: (Math.random()-0.5)*12, vy: -Math.random()*10-3, life: 60, color: `hsl(${Math.random()*360},100%,60%)`, size: 5 + Math.random()*6});
-        }
-        floatTexts.push({x: b.x, y: b.y - 30, text: '👑 KING CRAB DEFEATED! +5000', timer: 120, vy: -1});
-        // Reveal flag
-        flagPos = {x: b.x + TILE, y: 3 * TILE};
-        speakVoice('mamma mia!');
-      }
-    } else if (player.invincible <= 0) {
-      // Hurt player
-      if (player.starTimer > 0) {
-        b.hp--;
-        b.flash = 15;
-      } else if (player.big) {
-        player.big = false;
-        player.invincible = 90;
-        sfxDie();
-      } else {
-        playerDie();
-      }
-    }
-  }
-
-  // Laser hit
-  for (const laser of lasers) {
-    if (laser.active && laser.x + 8 > b.x && laser.x < b.x + b.w && laser.y + 4 > b.y && laser.y < b.y + b.h) {
-      b.hp--;
-      b.flash = 10;
-      laser.active = false;
-      score += 100;
-      floatTexts.push({x: b.x + 20, y: b.y - 10, text: `ZAP! ${b.hp}/${b.maxHp}`, timer: 40, vy: -2});
-      if (b.hp <= 0) {
-        b.defeated = true;
-        score += 5000;
-        for (let i = 0; i < 30; i++) {
-          particles.push({x: b.x + 32, y: b.y + 28, vx: (Math.random()-0.5)*12, vy: -Math.random()*10-3, life: 60, color: `hsl(${Math.random()*360},100%,60%)`, size: 5 + Math.random()*6});
-        }
-        floatTexts.push({x: b.x, y: b.y - 30, text: '👑 KING CRAB DEFEATED! +5000', timer: 120, vy: -1});
-        flagPos = {x: b.x + TILE, y: 3 * TILE};
-        speakVoice('mamma mia!');
-      }
-    }
-  }
-}
-
 // --- ENTITIES ---
 let levelTiles = [];
 let coinList = [];
@@ -1065,11 +708,6 @@ function loadLevel(n) {
   teleporting = false; teleportTimer = 0;
   powerups = [];
   lasers = [];
-  // Boss on every 4th level
-  boss = null;
-  if (BOSS_LEVELS.includes(n)) {
-    spawnBoss();
-  }
   player.starTimer = 0;
   player.big = false;
   player.laserTimer = 0;
@@ -1138,12 +776,7 @@ function loadLevel(n) {
   // Easter egg: rare surprise spawns
   surpriseTimer = 0;
   surpriseActive = false;
-  // On boss levels, hide flag until boss is defeated
-  if (BOSS_LEVELS.includes(n)) {
-    flagPos = {x: -999, y: -999}; // hidden offscreen
-  } else {
-    flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
-  }
+  flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
   player.x = L.playerStart.x * TILE;
   player.y = L.playerStart.y * TILE;
   player.vx = 0;
@@ -1297,15 +930,13 @@ function drawPixelChar(x, y, facing, frame) {
     ctx.globalAlpha = 0.4;
   }
 
-  // Scale up if big — anchor to feet so player grows upward
+  // Scale up if big
   const sc = player.big ? 1.3 : 1;
-  if (player.big) {
-    const feetY = py + player.height; // bottom of hitbox
-    const centerX = px + player.width / 2;
-    ctx.translate(centerX, feetY);
-    ctx.scale(sc, sc);
-    ctx.translate(-centerX, -feetY);
-  }
+  const ox = player.big ? -4 : 0;
+  const oy = player.big ? -10 : 0;
+  ctx.translate(px + ox, py + oy);
+  ctx.scale(sc, sc);
+  ctx.translate(-(px + ox), -(py + oy));
 
   // Determine animation state
   const isJumping = !player.onGround;
@@ -1816,8 +1447,6 @@ function update() {
       loadLevel(1);
       stopMusic();
       playMusic();
-      ensureAudio();
-      speakVoice('Itsa me, Clawdio!', 1.4, 0.85);
       keys['Enter'] = false;
     }
     return;
@@ -1983,13 +1612,11 @@ function update() {
       } else if (pu.type === 'mushroom') {
         player.mushroomTimer = 600; // ~10 seconds of trip
         score += 420;
-        // Trippy sound — dissonant and unsettling
-        playSound(300, 0.3, 'sine', 0.12, true);
-        setTimeout(() => playSound(283, 0.4, 'sine', 0.1, true), 100);
-        setTimeout(() => playSound(350, 0.5, 'sawtooth', 0.08, true), 200);
-        setTimeout(() => playSound(175, 0.6, 'triangle', 0.1, true), 350);
-        setTimeout(() => playSound(233, 0.4, 'sine', 0.08, true), 500);
-        speakVoice('Whatsa goinga onne?!', 1.5, 0.7);
+        // Trippy sound
+        playSound(300, 0.2, 'sine', 0.1);
+        setTimeout(() => playSound(350, 0.3, 'sine', 0.12), 100);
+        setTimeout(() => playSound(280, 0.4, 'sine', 0.1), 250);
+        setTimeout(() => playSound(400, 0.3, 'sine', 0.08), 400);
         floatTexts.push({x: pu.x, y: pu.y - 10, text: '🍄 MAGIC MUSHROOM! 🍄', timer: 90, vy: -1});
       }
       const puColor = pu.type === 'mushroom' ? '#F0F' : pu.type === 'oneup' ? '#0F0' : pu.type === 'laser' ? '#0FF' : pu.type === 'crab' ? '#F66' : '#FFD700';
@@ -2243,101 +1870,13 @@ function update() {
     return;
   }
 
-  // Boss update
-  if (boss && boss.alive) {
-    boss.timer++;
-    boss.legFrame += 0.1;
-    boss.eyeAngle += 0.03;
-    // Movement — charge toward player
-    const dx = player.x - boss.x;
-    boss.vx = dx > 0 ? 1.8 : -1.8;
-    if (boss.timer % 120 < 60) boss.vx *= 1.5; // charge phases
-    boss.x += boss.vx;
-    // Keep on ground
-    boss.y = 10 * TILE - boss.h;
-    // Boss attacks — spawn projectiles every 2 seconds
-    boss.attackTimer++;
-    if (boss.attackTimer > 120) {
-      boss.attackTimer = 0;
-      // Spit crab minions
-      crabList.push({x: boss.x + 32, y: boss.y + 40, w: 28, h: 24, vx: dx > 0 ? -2.5 : 2.5, alive: true, frame: 0, frameTimer: 0, squishTimer: 0});
-      playSound(150, 0.2, 'sawtooth', 0.15);
-    }
-    // Flash when hit
-    if (boss.flashTimer > 0) boss.flashTimer--;
-    if (boss.shakeTimer > 0) boss.shakeTimer--;
-    // Player stomp boss (land on top)
-    if (player.vy > 0 && player.y + player.height > boss.y && player.y + player.height < boss.y + 20 &&
-        player.x + player.width > boss.x && player.x < boss.x + boss.w) {
-      boss.hp--;
-      boss.flashTimer = 15;
-      boss.shakeTimer = 10;
-      player.vy = -14; // Bounce off
-      playSound(200, 0.3, 'square', 0.2);
-      score += 200;
-      floatTexts.push({x: boss.x, y: boss.y - 20, text: `OUCH! ${boss.hp}/${boss.maxHp}`, timer: 40, vy: -2});
-      if (boss.hp <= 0) {
-        boss.alive = false;
-        boss.defeated = true;
-        score += 5000;
-        // Victory explosion
-        for (let i = 0; i < 30; i++) {
-          particles.push({x: boss.x+32, y: boss.y+32, vx: (Math.random()-0.5)*10, vy: -Math.random()*8-2, life: 60, color: `hsl(${Math.random()*360},100%,60%)`, size: 5+Math.random()*5});
-        }
-        floatTexts.push({x: boss.x, y: boss.y - 40, text: '🦀 BOSS DEFEATED! +5000', timer: 90, vy: -1});
-        speakVoice("Mama mia! I got-a the big crab!");
-        sfxWin();
-        // Reveal flag
-        setTimeout(() => {
-          gameState = 'win';
-          winTimer = 0;
-          stopMusic();
-          sfxWin();
-        }, 2000);
-      }
-    }
-    // Boss hurts player (side collision)
-    else if (player.invincible <= 0 &&
-        player.x + player.width > boss.x + 5 && player.x < boss.x + boss.w - 5 &&
-        player.y + player.height > boss.y + 15 && player.y < boss.y + boss.h) {
-      if (player.starTimer > 0) {
-        boss.hp -= 2; boss.flashTimer = 15; boss.shakeTimer = 10;
-        playSound(200, 0.3, 'square', 0.2);
-      } else if (player.big) {
-        player.big = false; player.invincible = 90; sfxDie();
-      } else {
-        playerDie();
-      }
-    }
-    // Laser hits boss
-    for (const laser of lasers) {
-      if (laser.active && laser.x + 12 > boss.x && laser.x < boss.x + boss.w &&
-          laser.y + 4 > boss.y && laser.y < boss.y + boss.h) {
-        boss.hp--; boss.flashTimer = 15; boss.shakeTimer = 10;
-        laser.active = false;
-        playSound(250, 0.2, 'square', 0.15);
-        score += 100;
-        if (boss.hp <= 0) {
-          boss.alive = false; boss.defeated = true; score += 5000;
-          for (let i = 0; i < 30; i++) particles.push({x:boss.x+32,y:boss.y+32,vx:(Math.random()-0.5)*10,vy:-Math.random()*8-2,life:60,color:`hsl(${Math.random()*360},100%,60%)`,size:5+Math.random()*5});
-          floatTexts.push({x:boss.x,y:boss.y-40,text:'🦀 BOSS DEFEATED! +5000',timer:90,vy:-1});
-          speakVoice("Mama mia! I got-a the big crab!");
-          sfxWin();
-          setTimeout(()=>{gameState='win';winTimer=0;stopMusic();sfxWin();},2000);
-        }
-      }
-    }
-  }
-
-  // Flag (skip on boss levels — win is triggered by defeating boss)
-  if (!BOSS_LEVELS.includes(level) || (boss && boss.defeated)) {
-    if (player.x + player.width > flagPos.x && player.x < flagPos.x + TILE) {
-      gameState = 'win';
-      winTimer = 0;
-      score += 1000;
-      stopMusic();
-      sfxWin();
-    }
+  // Flag
+  if (player.x + player.width > flagPos.x && player.x < flagPos.x + TILE) {
+    gameState = 'win';
+    winTimer = 0;
+    score += 1000;
+    stopMusic();
+    sfxWin();
   }
 
   // Fall off screen
@@ -2637,108 +2176,6 @@ function render() {
   // Crabs
   for (const crab of crabList) {
     if (crab.alive || crab.squishTimer > 0) drawCrab(crab);
-  }
-
-  // BOSS — Giant Psychedelic Crab
-  if (boss && boss.alive) {
-    ctx.save();
-    const bx = Math.round(boss.x - cameraX);
-    const by = Math.round(boss.y);
-    // Screen shake when hit
-    if (boss.shakeTimer > 0) ctx.translate(Math.random()*6-3, Math.random()*6-3);
-    // Flash white when damaged
-    const flash = boss.flashTimer > 0 && Math.floor(boss.flashTimer/2)%2;
-    // Psychedelic color cycling
-    const hue = (Date.now() * 0.1) % 360;
-    const bodyColor = flash ? '#FFF' : `hsl(${hue}, 80%, 40%)`;
-    const shellColor = flash ? '#FFF' : `hsl(${(hue+40)%360}, 90%, 50%)`;
-    const clawColor = flash ? '#FFF' : `hsl(${(hue+120)%360}, 85%, 55%)`;
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(bx+5, by+boss.h-4, boss.w-10, 8);
-    // Body (big oval)
-    ctx.fillStyle = bodyColor;
-    ctx.beginPath();
-    ctx.ellipse(bx+32, by+35, 28, 22, 0, 0, Math.PI*2);
-    ctx.fill();
-    // Shell pattern
-    ctx.fillStyle = shellColor;
-    ctx.beginPath();
-    ctx.ellipse(bx+32, by+30, 24, 16, 0, Math.PI, 0);
-    ctx.fill();
-    // Shell spikes
-    for (let i = 0; i < 5; i++) {
-      const sx = bx + 12 + i * 10;
-      ctx.fillStyle = `hsl(${(hue+i*30)%360}, 100%, 60%)`;
-      ctx.beginPath();
-      ctx.moveTo(sx, by+16); ctx.lineTo(sx+5, by+6); ctx.lineTo(sx+10, by+16);
-      ctx.fill();
-    }
-    // Psychedelic eyes (spiral)
-    for (let side = -1; side <= 1; side += 2) {
-      const ex = bx + 32 + side * 14;
-      const ey = by + 28;
-      // Eye stalk
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(ex-3, ey-10, 6, 12);
-      // Eyeball
-      ctx.fillStyle = '#FFF';
-      ctx.beginPath(); ctx.arc(ex, ey-12, 7, 0, Math.PI*2); ctx.fill();
-      // Spiral pupil
-      ctx.strokeStyle = `hsl(${(hue+180)%360}, 100%, 50%)`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for (let a = 0; a < Math.PI*4; a += 0.2) {
-        const r = a * 0.8;
-        const px = ex + Math.cos(a + boss.eyeAngle) * r;
-        const py = ey - 12 + Math.sin(a + boss.eyeAngle) * r;
-        a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-      }
-      ctx.stroke();
-    }
-    // Claws with animation
-    const clawOpen = Math.sin(boss.timer * 0.05) * 0.3;
-    for (let side = -1; side <= 1; side += 2) {
-      ctx.save();
-      const cx = bx + 32 + side * 35;
-      const cy = by + 38;
-      ctx.fillStyle = clawColor;
-      // Upper claw
-      ctx.beginPath();
-      ctx.ellipse(cx, cy - 5 - clawOpen*5, 10, 6, side*0.3, 0, Math.PI*2);
-      ctx.fill();
-      // Lower claw
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + 5 + clawOpen*5, 10, 6, -side*0.3, 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-    }
-    // Legs (animated)
-    ctx.strokeStyle = bodyColor;
-    ctx.lineWidth = 3;
-    for (let i = 0; i < 3; i++) {
-      for (let side = -1; side <= 1; side += 2) {
-        const lx = bx + 32 + side * (8 + i*6);
-        const ly = by + 48;
-        const legBend = Math.sin(boss.legFrame + i * 1.2 + (side>0?Math.PI:0)) * 4;
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(lx + side * 8, ly + 8 + legBend);
-        ctx.lineTo(lx + side * 14, ly + 14);
-        ctx.stroke();
-      }
-    }
-    // HP bar
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(bx, by-16, boss.w, 8);
-    ctx.fillStyle = boss.hp > boss.maxHp*0.3 ? '#0F0' : '#F00';
-    ctx.fillRect(bx+1, by-15, (boss.w-2) * (boss.hp/boss.maxHp), 6);
-    ctx.fillStyle = '#FFF';
-    ctx.font = 'bold 8px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('CRAB LORD', bx+32, by-19);
-    ctx.textAlign = 'left';
-    ctx.restore();
   }
 
   // Jellyfish
@@ -3074,72 +2511,39 @@ function render() {
     ctx.restore();
   }
 
-  // Mushroom trip overlay — weird and scary
+  // Mushroom trip overlay
   if (player.mushroomTimer > 0 && gameState === 'playing') {
     ctx.save();
     const tripIntensity = Math.min(player.mushroomTimer / 100, 1);
+    // Rainbow hue cycling overlay
     const hue = (Date.now() * 0.08) % 360;
-    const t = Date.now() * 0.001;
-
-    // Dark pulsating vignette
-    ctx.globalCompositeOperation = 'source-over';
-    const vignette = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, canvas.width * 0.7);
-    vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(0.6, `rgba(${50 + Math.sin(t*3)*30},0,${50 + Math.cos(t*2)*30},${0.15 * tripIntensity})`);
-    vignette.addColorStop(1, `rgba(0,0,0,${0.5 * tripIntensity})`);
-    ctx.fillStyle = vignette;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Color inversion flashes
-    if (Math.sin(t * 4) > 0.85) {
-      ctx.globalCompositeOperation = 'difference';
-      ctx.globalAlpha = 0.15 * tripIntensity;
-      ctx.fillStyle = '#FFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Creepy hue cycling overlay
     ctx.globalCompositeOperation = 'overlay';
-    ctx.globalAlpha = 0.12 * tripIntensity;
-    ctx.fillStyle = `hsl(${hue}, 100%, 30%)`;
+    ctx.globalAlpha = 0.08 * tripIntensity;
+    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Screen wobble/warp
+    // Wobble — draw wavy horizontal distortion
     ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 0.06 * tripIntensity;
-    for (let sy = 0; sy < canvas.height; sy += 20) {
-      const wobX = Math.sin(sy * 0.08 + t * 3) * 12 * tripIntensity;
-      ctx.fillStyle = `hsl(${(hue + sy * 2) % 360}, 100%, 50%)`;
-      ctx.fillRect(wobX, sy, canvas.width, 3);
+    ctx.globalAlpha = 0.04 * tripIntensity;
+    for (let sy = 0; sy < canvas.height; sy += 30) {
+      const wobX = Math.sin(sy * 0.05 + Date.now() * 0.003) * 8 * tripIntensity;
+      ctx.fillStyle = `hsl(${(hue + sy) % 360}, 100%, 70%)`;
+      ctx.fillRect(wobX, sy, canvas.width, 2);
     }
     ctx.globalAlpha = 1;
-
-    // Floating creepy hallucinations
-    const creepyEmoji = ['🍄','👁️','🌀','💀','🕷️','👻','🔮','🫠','😵‍💫','🌚'];
-    for (let i = 0; i < 8; i++) {
-      const fx = (t * 20 + i * 150 + Math.sin(t + i) * 80) % (canvas.width + 100) - 50;
-      const fy = (Math.sin(t * 0.7 + i * 2.5) + 1) * canvas.height * 0.4 + 20;
-      const scale = 0.5 + Math.sin(t * 2 + i) * 0.3;
-      ctx.globalAlpha = (0.15 + Math.sin(t * 3 + i * 1.5) * 0.15) * tripIntensity;
-      ctx.font = `${16 + scale * 12}px serif`;
-      ctx.fillText(creepyEmoji[i], fx, fy);
+    // Floating hallucination particles
+    for (let i = 0; i < 5; i++) {
+      const fx = (Date.now() * 0.02 + i * 200) % canvas.width;
+      const fy = (Math.sin(Date.now() * 0.001 + i * 3) + 1) * canvas.height * 0.4;
+      const fhue = (hue + i * 72) % 360;
+      ctx.fillStyle = `hsla(${fhue}, 100%, 70%, ${0.3 * tripIntensity})`;
+      ctx.font = '20px serif';
+      ctx.fillText(['🍄','✨','🌀','💫','🌈'][i], fx, fy);
     }
-
-    // Breathing screen scale effect
-    ctx.globalAlpha = 0.03 * tripIntensity;
-    const breathScale = 1 + Math.sin(t * 1.5) * 0.02 * tripIntensity;
-    ctx.setTransform(breathScale, 0, 0, breathScale, canvas.width * (1 - breathScale) / 2, canvas.height * (1 - breathScale) / 2);
-    ctx.fillStyle = `rgba(${Math.sin(t)*128+128},0,${Math.cos(t)*128+128},0.05)`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    ctx.globalAlpha = 1;
     // Timer indicator
-    ctx.fillStyle = player.mushroomTimer < 180 ? '#F00' : '#F0F';
+    ctx.fillStyle = '#F0F';
     ctx.font = 'bold 12px monospace';
     ctx.globalAlpha = 0.7;
-    const tripMsg = player.mushroomTimer < 180 ? '😵 WEARING OFF...' : '🍄 TRIPPIN\'';
-    ctx.fillText(tripMsg + ' ' + Math.ceil(player.mushroomTimer / 60) + 's', 10, canvas.height - 10);
+    ctx.fillText('🍄 ' + Math.ceil(player.mushroomTimer / 60) + 's', 10, canvas.height - 10);
     ctx.globalAlpha = 1;
     ctx.restore();
   }
