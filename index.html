@@ -3296,15 +3296,27 @@ gameLoop();
   document.addEventListener('gesturestart', e => e.preventDefault());
 
   // Also make canvas tap trigger ensureAudio (needed for mobile audio policy)
-  // Fullscreen + audio unlock on first tap
+  // Fullscreen + audio unlock on any tap
+  let fsRequested = false;
   function goFullscreen() {
     ensureAudio();
+    if (fsRequested) return;
     const el = document.documentElement;
-    const rq = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-    if (rq) rq.call(el).catch(() => {});
+    // Try all vendor prefixes
+    if (el.requestFullscreen) { el.requestFullscreen().then(() => { fsRequested = true; }).catch(() => {}); }
+    else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); fsRequested = true; }
+    else if (el.msRequestFullscreen) { el.msRequestFullscreen(); fsRequested = true; }
+    // Re-lock orientation after fullscreen
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
   }
-  canvas.addEventListener('touchstart', goFullscreen, {once: true});
-  document.getElementById('btn-start').addEventListener('touchstart', goFullscreen, {once: true});
+  // Attach to every touch on the whole document (user gesture required)
+  document.addEventListener('touchend', goFullscreen);
+  // Also try on visibility change (returning to tab)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !fsRequested) goFullscreen();
+  });
 })();
 </script>
 </body>
