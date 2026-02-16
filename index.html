@@ -196,6 +196,15 @@ let surpriseTimer = 0;
 let surpriseActive = false;
 let disco = false;
 let discoTimer = 0;
+let tubeList = [];
+let teleporting = false;
+let teleportTimer = 0;
+let teleportDest = null;
+let teleportPhase = 'in'; // 'in' = entering, 'out' = exiting
+let psychTimer = 0;
+let screenWobble = 0;
+let rainbowTrail = [];
+let deathMelt = 0;
 const funMessages = [
   "🦀 CRAB RAVE! 🦀",
   "The crabs have unionized!",
@@ -270,6 +279,7 @@ const LEVELS = [
       {x:62,y:12},{x:78,y:12},{x:90,y:12}
     ],
     seagulls: [{x:25,y:3},{x:55,y:2},{x:85,y:4}],
+    tubes: [{x:50,y:11,destLevel:6,destX:60,destY:10,color:'#0F0'},{x:95,y:11,destLevel:7,destX:5,destY:10,color:'#F0F'}],
     flag: {x: 115, y: 3},
     playerStart: {x: 2, y: 12}
   },
@@ -320,6 +330,7 @@ const LEVELS = [
     ],
     urchins: [{x:42,y:12},{x:70,y:12},{x:100,y:12}],
     seagulls: [{x:20,y:2},{x:60,y:3},{x:90,y:2},{x:110,y:4}],
+    tubes: [{x:65,y:11,destLevel:8,destX:5,destY:10,color:'#808'}],
     flag: {x: 130, y: 3},
     playerStart: {x: 2, y: 12}
   },
@@ -469,7 +480,215 @@ const LEVELS = [
     urchins: [{x:20,y:12},{x:48,y:12},{x:66,y:12},{x:92,y:12}],
     seagulls: [{x:30,y:3},{x:55,y:2},{x:75,y:3},{x:95,y:2}],
     flag: {x: 118, y: 3},
-    playerStart: {x: 2, y: 12}
+    playerStart: {x: 2, y: 12},
+    tubes: [{x:40,y:11,destLevel:3,destX:5,destY:10,color:'#0F0'},{x:85,y:11,destLevel:6,destX:3,destY:10,color:'#F0F'}]
+  },
+  // Level 6 — THE MATRIX
+  {
+    width: 140,
+    bg: '#000800',
+    groundColor: '#003300',
+    brickColor: '#005500',
+    matrix: true,
+    platforms: [
+      ...Array.from({length: 140}, (_, i) => {
+        if ((i>=25&&i<=28)||(i>=50&&i<=54)||(i>=75&&i<=78)||(i>=100&&i<=103)) return null;
+        return {x:i,y:14,t:1};
+      }).filter(Boolean),
+      ...Array.from({length: 140}, (_, i) => {
+        if ((i>=25&&i<=28)||(i>=50&&i<=54)||(i>=75&&i<=78)||(i>=100&&i<=103)) return null;
+        return {x:i,y:13,t:1};
+      }).filter(Boolean),
+      {x:8,y:10,t:3},{x:9,y:10,t:2},{x:10,y:10,t:2},
+      {x:16,y:8,t:2},{x:17,y:8,t:3},{x:18,y:8,t:2},
+      {x:22,y:6,t:3},
+      {x:29,y:10,t:2},{x:30,y:10,t:2},{x:31,y:10,t:3},
+      {x:36,y:8,t:2},{x:37,y:8,t:2},
+      {x:42,y:6,t:3},{x:43,y:6,t:2},
+      {x:55,y:10,t:2},{x:56,y:10,t:3},{x:57,y:10,t:2},
+      {x:62,y:7,t:2},{x:63,y:7,t:3},
+      {x:68,y:10,t:2},{x:69,y:10,t:2},
+      {x:79,y:10,t:3},{x:80,y:10,t:2},{x:81,y:10,t:2},
+      {x:86,y:7,t:2},{x:87,y:7,t:3},
+      {x:92,y:10,t:2},{x:93,y:10,t:2},
+      {x:104,y:10,t:2},{x:105,y:10,t:3},{x:106,y:10,t:2},
+      {x:112,y:8,t:2},{x:113,y:8,t:2},
+      {x:118,y:12,t:1},{x:119,y:12,t:1},{x:119,y:11,t:1},
+      {x:120,y:12,t:1},{x:120,y:11,t:1},{x:120,y:10,t:1},
+    ],
+    coins: [{x:8,y:8},{x:17,y:6},{x:22,y:4},{x:30,y:8},{x:42,y:4},{x:56,y:8},{x:63,y:5},{x:79,y:8},{x:87,y:5},{x:105,y:8},{x:113,y:6}],
+    crabs: [{x:14,y:12},{x:34,y:12},{x:48,y:12},{x:60,y:12},{x:72,y:12},{x:90,y:12},{x:108,y:12}],
+    seagulls: [{x:20,y:2},{x:55,y:3},{x:85,y:2},{x:110,y:3}],
+    urchins: [{x:40,y:12},{x:70,y:12},{x:98,y:12}],
+    tubes: [{x:15,y:11,destLevel:7,destX:3,destY:10,color:'#0F0'},{x:95,y:11,destLevel:9,destX:5,destY:10,color:'#0FF'}],
+    flag: {x:128,y:3},
+    playerStart: {x:2,y:12}
+  },
+  // Level 7 — CANDY LAND
+  {
+    width: 130,
+    bg: '#FFE0F0',
+    groundColor: '#FF69B4',
+    brickColor: '#FF8C00',
+    candy: true,
+    platforms: [
+      ...Array.from({length: 130}, (_, i) => {
+        if ((i>=30&&i<=33)||(i>=55&&i<=58)||(i>=80&&i<=83)) return null;
+        return {x:i,y:14,t:1};
+      }).filter(Boolean),
+      ...Array.from({length: 130}, (_, i) => {
+        if ((i>=30&&i<=33)||(i>=55&&i<=58)||(i>=80&&i<=83)) return null;
+        return {x:i,y:13,t:1};
+      }).filter(Boolean),
+      {x:8,y:10,t:2},{x:9,y:10,t:3},{x:10,y:10,t:2},
+      {x:15,y:8,t:3},{x:16,y:8,t:2},
+      {x:22,y:10,t:2},{x:23,y:10,t:3},{x:24,y:10,t:2},
+      {x:34,y:10,t:2},{x:35,y:10,t:3},{x:36,y:10,t:2},
+      {x:40,y:7,t:2},{x:41,y:7,t:3},
+      {x:46,y:10,t:2},{x:47,y:10,t:2},
+      {x:52,y:6,t:3},{x:53,y:6,t:2},
+      {x:59,y:10,t:2},{x:60,y:10,t:3},{x:61,y:10,t:2},
+      {x:66,y:8,t:2},{x:67,y:8,t:3},
+      {x:72,y:10,t:2},{x:73,y:10,t:2},
+      {x:84,y:10,t:2},{x:85,y:10,t:3},{x:86,y:10,t:2},
+      {x:90,y:7,t:2},{x:91,y:7,t:3},
+      {x:96,y:10,t:2},{x:97,y:10,t:2},
+      {x:104,y:12,t:1},{x:105,y:12,t:1},{x:105,y:11,t:1},
+      {x:106,y:12,t:1},{x:106,y:11,t:1},{x:106,y:10,t:1},
+    ],
+    coins: [{x:9,y:8},{x:15,y:6},{x:23,y:8},{x:35,y:8},{x:41,y:5},{x:52,y:4},{x:60,y:8},{x:67,y:6},{x:85,y:8},{x:91,y:5},{x:97,y:8}],
+    crabs: [{x:12,y:12},{x:28,y:12},{x:44,y:12},{x:62,y:12},{x:76,y:12},{x:92,y:12}],
+    jellyfish: [{x:20,y:5},{x:50,y:6},{x:70,y:4},{x:88,y:5}],
+    tubes: [{x:38,y:11,destLevel:8,destX:3,destY:10,color:'#FF69B4'},{x:78,y:11,destLevel:10,destX:3,destY:10,color:'#FFF'}],
+    flag: {x:115,y:3},
+    playerStart: {x:2,y:12}
+  },
+  // Level 8 — UPSIDE DOWN
+  {
+    width: 140,
+    bg: '#0a0010',
+    groundColor: '#1a1a2a',
+    brickColor: '#2a1a3a',
+    upsideDown: true,
+    platforms: [
+      ...Array.from({length: 140}, (_, i) => {
+        if ((i>=28&&i<=32)||(i>=52&&i<=56)||(i>=78&&i<=82)||(i>=105&&i<=108)) return null;
+        return {x:i,y:14,t:1};
+      }).filter(Boolean),
+      ...Array.from({length: 140}, (_, i) => {
+        if ((i>=28&&i<=32)||(i>=52&&i<=56)||(i>=78&&i<=82)||(i>=105&&i<=108)) return null;
+        return {x:i,y:13,t:1};
+      }).filter(Boolean),
+      {x:10,y:10,t:2},{x:11,y:10,t:3},{x:12,y:10,t:2},
+      {x:18,y:7,t:2},{x:19,y:7,t:3},
+      {x:24,y:10,t:2},{x:25,y:10,t:2},
+      {x:33,y:10,t:2},{x:34,y:10,t:3},{x:35,y:10,t:2},
+      {x:40,y:7,t:2},{x:41,y:7,t:3},{x:42,y:7,t:2},
+      {x:47,y:5,t:3},
+      {x:57,y:10,t:2},{x:58,y:10,t:3},{x:59,y:10,t:2},
+      {x:64,y:8,t:2},{x:65,y:8,t:3},
+      {x:70,y:10,t:2},{x:71,y:10,t:2},
+      {x:83,y:10,t:2},{x:84,y:10,t:3},{x:85,y:10,t:2},
+      {x:90,y:7,t:2},{x:91,y:7,t:3},
+      {x:96,y:10,t:2},{x:97,y:10,t:2},
+      {x:109,y:10,t:2},{x:110,y:10,t:3},{x:111,y:10,t:2},
+      {x:116,y:8,t:2},{x:117,y:8,t:2},
+      {x:122,y:12,t:1},{x:123,y:12,t:1},{x:123,y:11,t:1},
+      {x:124,y:12,t:1},{x:124,y:11,t:1},{x:124,y:10,t:1},
+    ],
+    coins: [{x:11,y:8},{x:19,y:5},{x:34,y:8},{x:41,y:5},{x:47,y:3},{x:58,y:8},{x:65,y:6},{x:84,y:8},{x:91,y:5},{x:110,y:8}],
+    crabs: [{x:15,y:12},{x:37,y:12},{x:50,y:12},{x:68,y:12},{x:87,y:12},{x:100,y:12},{x:114,y:12}],
+    urchins: [{x:22,y:12},{x:62,y:12},{x:95,y:12}],
+    jellyfish: [{x:30,y:5},{x:55,y:4},{x:80,y:6},{x:105,y:5}],
+    tubes: [{x:45,y:11,destLevel:1,destX:5,destY:10,color:'#808'},{x:100,y:11,destLevel:9,destX:3,destY:10,color:'#F0F'}],
+    flag: {x:130,y:3},
+    playerStart: {x:2,y:12}
+  },
+  // Level 9 — NEON CITY
+  {
+    width: 150,
+    bg: '#0a0020',
+    groundColor: '#1a0040',
+    brickColor: '#3a0060',
+    neonCity: true,
+    platforms: [
+      ...Array.from({length: 150}, (_, i) => {
+        if ((i>=30&&i<=34)||(i>=55&&i<=59)||(i>=80&&i<=84)||(i>=110&&i<=114)) return null;
+        return {x:i,y:14,t:1};
+      }).filter(Boolean),
+      ...Array.from({length: 150}, (_, i) => {
+        if ((i>=30&&i<=34)||(i>=55&&i<=59)||(i>=80&&i<=84)||(i>=110&&i<=114)) return null;
+        return {x:i,y:13,t:1};
+      }).filter(Boolean),
+      {x:10,y:10,t:2},{x:11,y:10,t:3},{x:12,y:10,t:2},
+      {x:18,y:7,t:3},{x:19,y:7,t:2},{x:20,y:7,t:2},
+      {x:25,y:10,t:2},{x:26,y:10,t:3},
+      {x:35,y:10,t:2},{x:36,y:10,t:2},{x:37,y:10,t:3},
+      {x:42,y:7,t:2},{x:43,y:7,t:3},
+      {x:48,y:5,t:3},{x:49,y:5,t:2},
+      {x:60,y:10,t:2},{x:61,y:10,t:3},{x:62,y:10,t:2},
+      {x:68,y:7,t:2},{x:69,y:7,t:3},
+      {x:74,y:10,t:2},{x:75,y:10,t:2},
+      {x:85,y:10,t:2},{x:86,y:10,t:3},{x:87,y:10,t:2},
+      {x:92,y:7,t:2},{x:93,y:7,t:3},{x:94,y:7,t:2},
+      {x:100,y:5,t:3},
+      {x:115,y:10,t:2},{x:116,y:10,t:3},{x:117,y:10,t:2},
+      {x:122,y:8,t:2},{x:123,y:8,t:2},
+      {x:128,y:12,t:1},{x:129,y:12,t:1},{x:129,y:11,t:1},
+      {x:130,y:12,t:1},{x:130,y:11,t:1},{x:130,y:10,t:1},
+    ],
+    coins: [{x:11,y:8},{x:18,y:5},{x:26,y:8},{x:36,y:8},{x:43,y:5},{x:48,y:3},{x:61,y:8},{x:69,y:5},{x:86,y:8},{x:93,y:5},{x:100,y:3},{x:116,y:8}],
+    crabs: [{x:14,y:12},{x:28,y:12},{x:40,y:12},{x:52,y:12},{x:66,y:12},{x:78,y:12},{x:90,y:12},{x:108,y:12},{x:120,y:12}],
+    seagulls: [{x:22,y:2},{x:50,y:3},{x:72,y:2},{x:98,y:3},{x:118,y:2}],
+    urchins: [{x:38,y:12},{x:64,y:12},{x:96,y:12},{x:112,y:12}],
+    tubes: [{x:25,y:11,destLevel:6,destX:60,destY:10,color:'#F0F'},{x:105,y:11,destLevel:10,destX:3,destY:10,color:'#FFF'}],
+    flag: {x:140,y:3},
+    playerStart: {x:2,y:12}
+  },
+  // Level 10 — THE VOID
+  {
+    width: 160,
+    bg: '#000',
+    groundColor: '#222',
+    brickColor: '#444',
+    theVoid: true,
+    platforms: [
+      ...Array.from({length: 160}, (_, i) => {
+        if ((i>=22&&i<=27)||(i>=42&&i<=48)||(i>=65&&i<=72)||(i>=90&&i<=96)||(i>=118&&i<=124)) return null;
+        return {x:i,y:14,t:1};
+      }).filter(Boolean),
+      ...Array.from({length: 160}, (_, i) => {
+        if ((i>=22&&i<=27)||(i>=42&&i<=48)||(i>=65&&i<=72)||(i>=90&&i<=96)||(i>=118&&i<=124)) return null;
+        return {x:i,y:13,t:1};
+      }).filter(Boolean),
+      {x:10,y:10,t:3},{x:11,y:10,t:2},{x:12,y:10,t:2},
+      {x:18,y:7,t:2},{x:19,y:7,t:3},
+      {x:28,y:10,t:2},{x:29,y:10,t:3},{x:30,y:10,t:2},
+      {x:35,y:7,t:2},{x:36,y:7,t:3},
+      {x:40,y:5,t:3},
+      {x:49,y:10,t:2},{x:50,y:10,t:3},{x:51,y:10,t:2},
+      {x:56,y:7,t:2},{x:57,y:7,t:3},{x:58,y:7,t:2},
+      {x:63,y:5,t:3},
+      {x:73,y:10,t:2},{x:74,y:10,t:3},{x:75,y:10,t:2},
+      {x:80,y:7,t:2},{x:81,y:7,t:3},
+      {x:86,y:10,t:2},{x:87,y:10,t:2},
+      {x:97,y:10,t:2},{x:98,y:10,t:3},{x:99,y:10,t:2},
+      {x:104,y:7,t:3},{x:105,y:7,t:2},
+      {x:110,y:5,t:2},{x:111,y:5,t:3},
+      {x:125,y:10,t:2},{x:126,y:10,t:3},{x:127,y:10,t:2},
+      {x:132,y:8,t:2},{x:133,y:8,t:2},
+      {x:138,y:12,t:1},{x:139,y:12,t:1},{x:139,y:11,t:1},
+      {x:140,y:12,t:1},{x:140,y:11,t:1},{x:140,y:10,t:1},
+      {x:141,y:12,t:1},{x:141,y:11,t:1},{x:141,y:10,t:1},{x:141,y:9,t:1},
+    ],
+    coins: [{x:10,y:8},{x:19,y:5},{x:29,y:8},{x:36,y:5},{x:40,y:3},{x:50,y:8},{x:57,y:5},{x:63,y:3},{x:74,y:8},{x:81,y:5},{x:98,y:8},{x:104,y:5},{x:111,y:3},{x:126,y:8}],
+    crabs: [{x:15,y:12},{x:32,y:12},{x:53,y:12},{x:77,y:12},{x:88,y:12},{x:102,y:12},{x:115,y:12},{x:130,y:12}],
+    urchins: [{x:38,y:12},{x:60,y:12},{x:84,y:12},{x:108,y:12},{x:128,y:12}],
+    jellyfish: [{x:25,y:5},{x:45,y:4},{x:70,y:6},{x:95,y:5},{x:120,y:4}],
+    seagulls: [{x:20,y:2},{x:55,y:3},{x:82,y:2},{x:112,y:3}],
+    tubes: [{x:35,y:11,destLevel:1,destX:3,destY:10,color:'#888'},{x:85,y:11,destLevel:7,destX:40,destY:10,color:'#F0F'}],
+    flag: {x:150,y:3},
+    playerStart: {x:2,y:12}
   }
 ];
 
@@ -505,8 +724,12 @@ function loadLevel(n) {
   jellyList = (L.jellyfish || []).map(j => ({x: j.x * TILE, y: j.y * TILE, baseY: j.y * TILE, w: 24, h: 24, alive: true, frame: 0, squishTimer: 0}));
   urchinList = (L.urchins || []).map(u => ({x: u.x * TILE, y: u.y * TILE, w: 28, h: 24, frame: 0}));
   seagullList = (L.seagulls || []).map(s => ({x: s.x * TILE, y: s.y * TILE, baseY: s.y * TILE, w: 30, h: 20, vx: -2, alive: true, frame: 0, squishTimer: 0}));
+  tubeList = (L.tubes || []).map(t => ({x: t.x * TILE, y: t.y * TILE, w: TILE * 2, h: TILE * 2, destLevel: t.destLevel, destX: t.destX * TILE, destY: t.destY * TILE, color: t.color || '#0F0', frame: 0}));
+  teleporting = false;
+  teleportTimer = 0;
   powerups = [];
   lasers = [];
+  rainbowTrail = [];
   player.starTimer = 0;
   player.big = false;
   player.laserTimer = 0;
@@ -1087,7 +1310,8 @@ function drawHUD() {
   ctx.fillStyle = '#FFD700';
   ctx.fillText(`🪙 ${coins}`, 340, 24);
   ctx.fillStyle = '#FFF';
-  ctx.fillText(`WORLD ${level}-1`, 480, 24);
+  const levelNames = ['','OVERWORLD','NIGHT','OCEAN','SPACE','VOLCANO','MATRIX','CANDY','UPSIDE↓','NEON','VOID'];
+  ctx.fillText(`${level}: ${levelNames[level]||'???'}`, 440, 24);
   if (player.laserTimer > 0) {
     // Blinking laser HUD indicator
     const blink = Math.floor(Date.now() / 300) % 2 === 0;
@@ -1144,6 +1368,7 @@ function update() {
 
   if (gameState === 'dead') {
     deathTimer++;
+    deathMelt = Math.min(deathTimer / 60, 1);
     player.vy += GRAVITY;
     player.y += player.vy;
     if (deathTimer > 90) {
@@ -1488,6 +1713,64 @@ function update() {
     }
   }
 
+  // Tubes — press DOWN to teleport
+  for (const tube of tubeList) {
+    tube.frame++;
+    if (!teleporting && player.x + player.width > tube.x + 8 && player.x < tube.x + tube.w - 8 &&
+        player.y + player.height > tube.y && player.y < tube.y + tube.h &&
+        (keys['ArrowDown'] || keys['KeyS'])) {
+      teleporting = true;
+      teleportTimer = 60;
+      teleportPhase = 'in';
+      teleportDest = {level: tube.destLevel, x: tube.destX, y: tube.destY};
+      // Teleport sound
+      playSound(800, 0.1, 'sine', 0.15);
+      setTimeout(() => playSound(600, 0.1, 'sine', 0.12), 50);
+      setTimeout(() => playSound(400, 0.15, 'sine', 0.1), 100);
+      setTimeout(() => playSound(200, 0.2, 'sine', 0.08), 150);
+      keys['ArrowDown'] = false;
+      keys['KeyS'] = false;
+    }
+  }
+
+  // Handle teleport animation
+  if (teleporting) {
+    teleportTimer--;
+    if (teleportTimer === 30) {
+      // Midpoint — actually teleport
+      if (teleportDest.level !== level) {
+        level = teleportDest.level;
+        loadLevel(level);
+        stopMusic();
+        playMusic();
+      }
+      player.x = teleportDest.x;
+      player.y = teleportDest.y;
+      player.vx = 0;
+      player.vy = 0;
+      cameraX = Math.max(0, player.x - canvas.width / 3);
+      teleportPhase = 'out';
+      playSound(200, 0.1, 'sine', 0.08);
+      setTimeout(() => playSound(400, 0.1, 'sine', 0.1), 50);
+      setTimeout(() => playSound(600, 0.1, 'sine', 0.12), 100);
+      setTimeout(() => playSound(800, 0.15, 'sine', 0.15), 150);
+    }
+    if (teleportTimer <= 0) {
+      teleporting = false;
+    }
+    return; // Freeze game during teleport
+  }
+
+  // Rainbow trail when running fast
+  if (Math.abs(player.vx) > 3) {
+    rainbowTrail.push({x: player.x + 12, y: player.y + 15, life: 20, hue: (Date.now() / 5) % 360});
+  }
+  rainbowTrail = rainbowTrail.filter(r => { r.life--; return r.life > 0; });
+
+  // Psychedelic timer
+  psychTimer++;
+  screenWobble = Math.sin(psychTimer * 0.02) * 0.5;
+
   // Flag
   if (player.x + player.width > flagPos.x && player.x < flagPos.x + TILE) {
     gameState = 'win';
@@ -1558,7 +1841,17 @@ function playerDie() {
   gameState = 'dead';
   player.vy = -10;
   deathTimer = 0;
+  deathMelt = 0;
   sfxDie();
+  // Death particles explosion
+  for (let i = 0; i < 15; i++) {
+    const hue = Math.random() * 360;
+    particles.push({
+      x: player.x + 12, y: player.y + 15,
+      vx: (Math.random()-0.5) * 8, vy: -Math.random() * 8 - 2,
+      life: 40, color: `hsl(${hue},100%,60%)`, size: 3 + Math.random() * 3
+    });
+  }
 }
 
 // --- RENDER ---
@@ -1682,6 +1975,168 @@ function render() {
       ctx.arc(bx, by, br, 0, Math.PI * 2);
       ctx.fill();
     }
+  } else if (L.matrix) {
+    // THE MATRIX — falling green characters
+    ctx.fillStyle = '#0F0';
+    ctx.font = '12px monospace';
+    for (let col = 0; col < 60; col++) {
+      const speed = 1 + (col % 5) * 0.5;
+      const x = (col * 14) % canvas.width;
+      const yOffset = (Date.now() * speed * 0.05 + col * 100) % (canvas.height + 200) - 100;
+      for (let ch = 0; ch < 8; ch++) {
+        const cy = yOffset + ch * 16;
+        if (cy < 0 || cy > canvas.height) continue;
+        ctx.globalAlpha = Math.max(0, 1 - ch * 0.12);
+        const char = String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96));
+        ctx.fillText(char, x, cy);
+      }
+    }
+    ctx.globalAlpha = 1;
+  } else if (L.candy) {
+    // CANDY LAND — pastel everything
+    // Cotton candy clouds
+    const colors = ['#FFB6C1', '#DDA0DD', '#FFD700', '#87CEEB', '#98FB98'];
+    for (let i = 0; i < 10; i++) {
+      const cx = ((i * 200 + 50) - cameraX * 0.3) % (canvas.width + 200);
+      const cy = 30 + (i % 3) * 40;
+      ctx.fillStyle = colors[i % colors.length] + 'AA';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 20 + (i%3)*8, 0, Math.PI * 2);
+      ctx.arc(cx + 20, cy - 5, 18, 0, Math.PI * 2);
+      ctx.arc(cx + 40, cy, 22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Lollipop decorations
+    for (let i = 0; i < 5; i++) {
+      const lx = ((i * 300 + 100) - cameraX * 0.5) % (canvas.width + 300);
+      ctx.fillStyle = '#888';
+      ctx.fillRect(lx + 8, canvas.height - 100, 4, 40);
+      ctx.fillStyle = colors[(i+2) % colors.length];
+      ctx.beginPath();
+      ctx.arc(lx + 10, canvas.height - 110, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#FFF';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(lx + 10, canvas.height - 110, 15, 0, Math.PI);
+      ctx.stroke();
+    }
+  } else if (L.upsideDown) {
+    // UPSIDE DOWN — eerie floating particles, spores
+    for (let i = 0; i < 40; i++) {
+      const sx = (i * 67 + Math.sin(Date.now() * 0.0005 + i) * 40) % canvas.width;
+      const sy = (Date.now() * 0.008 + i * 50) % canvas.height;
+      const sz = 1 + Math.sin(i) * 1.5;
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(200,100,255,0.3)' : 'rgba(150,50,200,0.2)';
+      ctx.beginPath();
+      ctx.arc(sx, sy, Math.abs(sz) + 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Creepy vine tendrils from top
+    ctx.strokeStyle = 'rgba(80,20,100,0.4)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 8; i++) {
+      const vx = ((i * 150) - cameraX * 0.4) % (canvas.width + 200);
+      ctx.beginPath();
+      ctx.moveTo(vx, 0);
+      const sway = Math.sin(Date.now() * 0.001 + i) * 15;
+      ctx.quadraticCurveTo(vx + sway, 60, vx + sway * 1.5, 80 + (i%3)*30);
+      ctx.stroke();
+    }
+  } else if (L.neonCity) {
+    // NEON CITY — synthwave grid + skyline
+    // Neon grid floor
+    ctx.strokeStyle = '#F0F';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.3;
+    for (let gx = 0; gx < canvas.width; gx += 40) {
+      ctx.beginPath();
+      ctx.moveTo(gx, canvas.height - 80);
+      ctx.lineTo(canvas.width/2, canvas.height/2);
+      ctx.stroke();
+    }
+    for (let gy = canvas.height - 80; gy > canvas.height/2; gy -= 20) {
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(canvas.width, gy);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // City skyline
+    ctx.fillStyle = '#0a0020';
+    const buildings = [40,80,60,120,50,90,70,110,45,85,65,100,55];
+    for (let i = 0; i < buildings.length; i++) {
+      const bx = ((i * 70) - cameraX * 0.15) % (canvas.width + 100);
+      const bh = buildings[i];
+      ctx.fillRect(bx, canvas.height - 64 - bh, 50, bh);
+      // Neon window lights
+      const winColor = i % 3 === 0 ? '#F0F' : i % 3 === 1 ? '#0FF' : '#FF0';
+      for (let wy = 0; wy < bh - 10; wy += 15) {
+        for (let wx = 5; wx < 45; wx += 12) {
+          if (Math.sin(i * 7 + wy + wx) > 0) {
+            ctx.fillStyle = winColor + '88';
+            ctx.fillRect(bx + wx, canvas.height - 64 - bh + 5 + wy, 6, 8);
+          }
+        }
+      }
+    }
+    // Neon signs
+    ctx.save();
+    ctx.shadowColor = '#F0F';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#F0F';
+    ctx.font = 'bold 14px monospace';
+    const sign1x = (200 - cameraX * 0.15) % (canvas.width + 100);
+    ctx.fillText('CYBER CRAB', sign1x, canvas.height - 150);
+    ctx.shadowColor = '#0FF';
+    ctx.fillStyle = '#0FF';
+    const sign2x = (500 - cameraX * 0.15) % (canvas.width + 100);
+    ctx.fillText('NEON SHELL', sign2x, canvas.height - 130);
+    ctx.restore();
+    // Horizontal neon scan line
+    const scanY = (Date.now() * 0.1) % canvas.height;
+    ctx.fillStyle = 'rgba(255,0,255,0.05)';
+    ctx.fillRect(0, scanY, canvas.width, 2);
+  } else if (L.theVoid) {
+    // THE VOID — minimalist, existential
+    // Fading geometric shapes
+    for (let i = 0; i < 6; i++) {
+      const vx = (i * 200 + Math.sin(Date.now() * 0.0003 + i) * 100) % canvas.width;
+      const vy = 50 + (i * 80) % (canvas.height - 100);
+      const pulse = Math.sin(Date.now() * 0.001 + i * 1.5) * 0.5 + 0.5;
+      ctx.strokeStyle = `rgba(255,255,255,${pulse * 0.15})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (i % 3 === 0) {
+        ctx.arc(vx, vy, 30 + pulse * 20, 0, Math.PI * 2);
+      } else if (i % 3 === 1) {
+        ctx.rect(vx - 20, vy - 20, 40 + pulse * 20, 40 + pulse * 20);
+      } else {
+        ctx.moveTo(vx, vy - 30);
+        ctx.lineTo(vx + 30, vy + 20);
+        ctx.lineTo(vx - 30, vy + 20);
+        ctx.closePath();
+      }
+      ctx.stroke();
+    }
+    // Static noise
+    if (Math.random() < 0.3) {
+      for (let i = 0; i < 20; i++) {
+        const nx = Math.random() * canvas.width;
+        const ny = Math.random() * canvas.height;
+        ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.1})`;
+        ctx.fillRect(nx, ny, 2, 2);
+      }
+    }
+    // Existential text that fades in and out
+    const voidTexts = ['ARE YOU STILL PLAYING?', 'WHAT IS A CRAB, REALLY?', 'THE VOID STARES BACK', '01101000 01100101 01101100 01110000', '...'];
+    const vti = Math.floor(Date.now() / 5000) % voidTexts.length;
+    const vtAlpha = Math.sin(Date.now() * 0.001) * 0.3 + 0.3;
+    ctx.fillStyle = `rgba(255,255,255,${vtAlpha})`;
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(voidTexts[vti], canvas.width/2, canvas.height/2 - 50);
+    ctx.textAlign = 'left';
   } else {
     drawClouds();
     drawHills();
@@ -1809,6 +2264,50 @@ function render() {
     ctx.fillStyle = '#F00';
     ctx.fillRect(ux + 10, uy + 9, 3, 3);
     ctx.fillRect(ux + 16, uy + 9, 3, 3);
+  }
+
+  // Tubes
+  for (const tube of tubeList) {
+    const tx = Math.round(tube.x - cameraX);
+    const ty = Math.round(tube.y);
+    // Swirling portal
+    ctx.save();
+    const swirl = tube.frame * 0.05;
+    // Outer glow
+    const grd = ctx.createRadialGradient(tx + TILE, ty + TILE, 5, tx + TILE, ty + TILE, TILE * 1.2);
+    grd.addColorStop(0, tube.color);
+    grd.addColorStop(0.5, tube.color + '88');
+    grd.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd;
+    ctx.fillRect(tx - 10, ty - 10, TILE * 2 + 20, TILE * 2 + 20);
+    // Spiral rings
+    for (let r = 0; r < 3; r++) {
+      const radius = 12 + r * 8;
+      const angle = swirl + r * 2.1;
+      ctx.strokeStyle = tube.color;
+      ctx.lineWidth = 3 - r * 0.5;
+      ctx.globalAlpha = 0.7 - r * 0.2;
+      ctx.beginPath();
+      ctx.arc(tx + TILE, ty + TILE, radius, angle, angle + Math.PI * 1.5);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // Center bright spot
+    ctx.fillStyle = '#FFF';
+    ctx.beginPath();
+    ctx.arc(tx + TILE, ty + TILE, 6 + Math.sin(swirl * 2) * 2, 0, Math.PI * 2);
+    ctx.fill();
+    // "↓ WARP" text
+    ctx.fillStyle = tube.color;
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('↓ WARP', tx + TILE, ty - 5);
+    ctx.textAlign = 'left';
+    ctx.restore();
+    // Emit particles
+    if (Math.random() < 0.15) {
+      particles.push({x: tx + TILE + cameraX + (Math.random()-0.5)*20, y: ty + TILE + (Math.random()-0.5)*20, vx: (Math.random()-0.5)*2, vy: -Math.random()*2, life: 20, color: tube.color, size: 2+Math.random()*2});
+    }
   }
 
   // Flag
@@ -1967,9 +2466,53 @@ function render() {
     ctx.restore();
   }
 
+  // Rainbow trail
+  for (const rt of rainbowTrail) {
+    ctx.fillStyle = `hsla(${rt.hue}, 100%, 60%, ${rt.life / 20 * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(rt.x - cameraX, rt.y, rt.life / 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Subtle screen wobble (psychedelic)
+  if (gameState === 'playing' && screenWobble !== 0) {
+    const wobbleData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    ctx.putImageData(wobbleData, Math.sin(Date.now() * 0.003) * screenWobble, Math.cos(Date.now() * 0.004) * screenWobble * 0.5);
+  }
+
   drawHUD();
 
   if (gameState === 'win') drawWin();
+
+  // Teleport transition overlay
+  if (teleporting) {
+    ctx.save();
+    const progress = teleportPhase === 'in' ? 1 - teleportTimer / 60 : teleportTimer / 30;
+    // Kaleidoscope spiral
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(progress * 1.5, 0.9)})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Spiral effect
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const spiralT = Date.now() * 0.01;
+    for (let i = 0; i < 12; i++) {
+      const angle = spiralT + i * (Math.PI * 2 / 12);
+      const dist = 50 + progress * 200;
+      const hue = (i * 30 + Date.now() * 0.5) % 360;
+      ctx.fillStyle = `hsla(${hue}, 100%, 60%, ${0.6 - progress * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(angle) * dist * (1 - progress), cy + Math.sin(angle) * dist * (1 - progress), 15 - progress * 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Center warp text
+    if (progress > 0.3) {
+      ctx.fillStyle = '#FFF';
+      ctx.font = 'bold 24px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(teleportPhase === 'in' ? '⟩⟩⟩ WARPING ⟨⟨⟨' : `WORLD ${level}`, cx, cy);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  }
 }
 
 // --- GAME LOOP ---
