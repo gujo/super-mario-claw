@@ -2009,7 +2009,48 @@ function update() {
 
   // Laser timer & shooting
   if (player.laserTimer > 0) player.laserTimer--;
-  if (player.mushroomTimer > 0) player.mushroomTimer--;
+  if (player.mushroomTimer > 0) {
+    player.mushroomTimer--;
+    // Crank reverb during trip
+    if (reverbGain) {
+      reverbGain.gain.value = 0.85;
+      delayGain.gain.value = 0.45;
+      delayFeedback.gain.value = 0.55;
+      delayNode.delayTime.value = 0.5;
+      dryGain.gain.value = 0.4;
+    }
+    // Random Burroughs quotes
+    if (player.mushroomTimer % 180 === 0 && player.mushroomTimer > 0) {
+      const quotes = [
+        "Nothing is true, everything is permitted",
+        "Language is a virus from outer space",
+        "Your mind will answer most questions if you learn to relax and wait for the answer",
+        "Hustlers of the world, there is one mark you cannot beat: the mark inside",
+        "A paranoid is someone who knows a little of what's going on",
+        "In the magical universe there are no coincidences and there are no accidents",
+        "The aim of education is the knowledge not of facts but of values",
+        "Smash the control images. Smash the control machine",
+        "After one look at this planet any visitor from outer space would say: I want to see the manager",
+        "The cat does not offer services. The cat offers itself",
+        "Desperation is the raw material of drastic change",
+        "The way to kill a man or a nation is to cut off his dreams",
+        "Artists to my mind are the real architects of change",
+        "Sometimes paranoia is just having all the facts",
+        "Your body is a ship to carry you through life. You are the captain."
+      ];
+      speakVoice(quotes[Math.floor(Math.random() * quotes.length)], 0.9 + Math.random()*0.5, 0.6 + Math.random()*0.4);
+    }
+    // Restore audio when trip ends
+    if (player.mushroomTimer === 1) {
+      if (reverbGain) {
+        reverbGain.gain.value = 0.35;
+        delayGain.gain.value = 0.12;
+        delayFeedback.gain.value = 0.2;
+        delayNode.delayTime.value = 0.375;
+        dryGain.gain.value = 0.7;
+      }
+    }
+  }
   if (player.laserCooldown > 0) player.laserCooldown--;
   if (player.laserTimer > 0 && (keys['KeyX'] || keys['KeyZ'] || keys['ControlLeft'] || keys['ControlRight']) && player.laserCooldown <= 0) {
     lasers.push({
