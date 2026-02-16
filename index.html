@@ -197,16 +197,28 @@ let surpriseActive = false;
 let disco = false;
 let discoTimer = 0;
 const funMessages = [
-  "A wild MEGA CRAB appears!",
   "🦀 CRAB RAVE! 🦀",
   "The crabs have unionized!",
-  "Your princess is in another shell!",
+  "Your princess is in another repo!",
   "IT'S-A ME, KLOD-IO!",
   "Crabs: 'We demand better wages!'",
   "⚡ UNLIMITED POWER! ⚡",
-  "Secret crab society discovered!",
-  "Achievement: Touch Grass (jk, no grass here)",
+  "git commit -m 'fixed crabs'",
+  "Achievement: Touch Grass (404 Not Found)",
   "Plot twist: YOU were the crab all along",
+  "This game was vibe coded 🤙",
+  "// TODO: fix this later (never)",
+  "npm install crab-repellent",
+  "Segfault in crab.exe",
+  "The AI is hallucinating crabs again",
+  "sudo rm -rf /crabs (permission denied)",
+  "Stack Overflow: 'How to stomp crabs?'",
+  "Vibe check: ✅ immaculate",
+  "🔥 DEPLOYING TO PRODUCTION 🔥",
+  "localhost:3000/crabs returned 418 I'm a teapot",
+  "ChatGPT couldn't beat this level",
+  "Cursor wrote this code btw",
+  "LGTM 🚢 (nobody reviewed this)",
 ];
 
 // --- LEVEL DATA ---
@@ -686,41 +698,55 @@ function drawPixelChar(x, y, facing, frame) {
   ctx.scale(scale, scale);
   ctx.translate(-(px + ox), -(py + oy));
 
-  // Body
+  // Hoodie body
   ctx.fillStyle = bodyColor;
-  ctx.fillRect(px + 4, py + 8, 16, 14);
+  ctx.fillRect(px + 3, py + 8, 18, 14);
 
   // Head
   ctx.fillStyle = '#FFB880';
   ctx.fillRect(px + 6, py, 12, 10);
 
-  // Hat
+  // Hoodie hood
   ctx.fillStyle = hatColor;
-  ctx.fillRect(px + 4, py - 2, 16, 6);
-  ctx.fillRect(px + 2, py + 2, 20, 3);
+  ctx.fillRect(px + 4, py - 2, 16, 7);
+  ctx.fillRect(px + 5, py + 5, 14, 3);
 
-  // Hat emblem
-  ctx.fillStyle = '#FFF';
-  ctx.fillRect(px + 10, py, 4, 4);
+  // Headphones
+  ctx.fillStyle = '#333';
+  ctx.fillRect(px + 3, py + 1, 3, 6);
+  ctx.fillRect(px + 18, py + 1, 3, 6);
+  ctx.fillRect(px + 5, py - 2, 14, 2);
 
-  // Eyes
-  ctx.fillStyle = '#000';
+  // Sunglasses (cool devs wear shades)
+  ctx.fillStyle = '#111';
   if (facing > 0) {
-    ctx.fillRect(px + 14, py + 4, 3, 3);
+    ctx.fillRect(px + 10, py + 3, 8, 4);
+    ctx.fillStyle = '#0FF';
+    ctx.fillRect(px + 14, py + 4, 3, 2); // lens glint
   } else {
-    ctx.fillRect(px + 7, py + 4, 3, 3);
+    ctx.fillRect(px + 6, py + 3, 8, 4);
+    ctx.fillStyle = '#0FF';
+    ctx.fillRect(px + 7, py + 4, 3, 2);
   }
 
-  // Legs
-  ctx.fillStyle = '#4040E8';
+  // Hoodie pocket / code symbol
+  ctx.fillStyle = '#FFF';
+  ctx.font = '7px monospace';
+  ctx.fillText('</>', px + 5, py + 19);
+
+  // Legs (dark jeans)
+  ctx.fillStyle = '#2a2a3a';
   const legOffset = Math.sin(frame * 0.3) * 3;
   ctx.fillRect(px + 5, py + 22, 6, 8);
   ctx.fillRect(px + 13, py + 22, 6, 8);
 
-  // Shoes
-  ctx.fillStyle = '#8B4513';
+  // Sneakers
+  ctx.fillStyle = '#FFF';
   ctx.fillRect(px + 3, py + 28, 8, 4);
   ctx.fillRect(px + 13, py + 28, 8, 4);
+  ctx.fillStyle = '#E84040';
+  ctx.fillRect(px + 4, py + 29, 6, 2);
+  ctx.fillRect(px + 14, py + 29, 6, 2);
 
   // Laser arm glow when laser is active
   if (player.laserTimer > 0) {
@@ -910,81 +936,139 @@ function drawTitle() {
   ctx.fillStyle = '#FFF';
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 4;
-  ctx.font = 'bold 52px monospace';
+  ctx.font = 'bold 48px monospace';
   ctx.textAlign = 'center';
-  ctx.strokeText('SUPER MARIO CLAW', canvas.width/2, 140);
-  ctx.fillText('SUPER MARIO CLAW', canvas.width/2, 140);
+  ctx.strokeText('SUPER MARIO CLAW', canvas.width/2, 120);
+  ctx.fillText('SUPER MARIO CLAW', canvas.width/2, 120);
+
+  // Subtitle - vibe coded
+  ctx.font = '14px monospace';
+  ctx.fillStyle = '#0F0';
+  ctx.fillText('$ npx create-vibe-game --crabs --lasers', canvas.width/2, 150);
 
   // Crab mascot
   ctx.font = '64px serif';
   ctx.fillText('🦀', canvas.width/2, 230);
 
-  // Subtitle
+  // Vibe tagline
   ctx.font = '18px monospace';
   ctx.fillStyle = '#FFD700';
-  ctx.fillText('A Crustacean Adventure', canvas.width/2, 270);
+  ctx.fillText('100% Vibe Coded • 0% Unit Tests', canvas.width/2, 270);
+
+  // Rotating dev quotes
+  const devQuotes = [
+    '"Works on my machine" — Every dev ever',
+    'Powered by vibes and questionable decisions',
+    'No crabs were harmed (they respawn)',
+    'Built with love, AI, and zero planning',
+    'git push --force (to production)',
+    'Code review? We ship on vibes here',
+  ];
+  ctx.font = '12px monospace';
+  ctx.fillStyle = '#888';
+  ctx.fillText(devQuotes[Math.floor(Date.now() / 3000) % devQuotes.length], canvas.width/2, 295);
 
   // Blink "Press Enter"
   titleBlink++;
   if (Math.floor(titleBlink / 30) % 2 === 0) {
     ctx.fillStyle = '#FFF';
     ctx.font = '20px monospace';
-    ctx.fillText('PRESS ENTER TO START', canvas.width/2, 350);
+    ctx.fillText('PRESS ENTER TO VIBE', canvas.width/2, 350);
   }
 
   // Controls
   ctx.fillStyle = '#AAA';
-  ctx.font = '14px monospace';
-  ctx.fillText('← → MOVE   SPACE JUMP   SHIFT RUN   X LASER', canvas.width/2, 420);
+  ctx.font = '13px monospace';
+  ctx.fillText('← → MOVE   SPACE JUMP   SHIFT RUN   X LASER', canvas.width/2, 400);
+  ctx.fillStyle = '#666';
+  ctx.font = '11px monospace';
+  ctx.fillText('Pro tip: The first ? block always has a laser', canvas.width/2, 420);
+  ctx.fillText('v0.1.0-alpha (it\'s always alpha)', canvas.width/2, 445);
 
   ctx.restore();
 }
 
 // --- GAME OVER SCREEN ---
 function drawGameOver() {
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#E84040';
   ctx.font = 'bold 48px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('GAME OVER', canvas.width/2, 200);
+  ctx.fillText('SEGFAULT', canvas.width/2, 170);
+  ctx.fillStyle = '#F00';
+  ctx.font = '16px monospace';
+  ctx.fillText('Process "vibe_coder" terminated (signal 11)', canvas.width/2, 205);
+  ctx.fillStyle = '#0F0';
+  ctx.font = '14px monospace';
+  ctx.fillText(`$ cat /var/log/score.txt`, canvas.width/2, 245);
   ctx.fillStyle = '#FFF';
-  ctx.font = '24px monospace';
-  ctx.fillText(`FINAL SCORE: ${score}`, canvas.width/2, 270);
-  ctx.fillText(`COINS: ${coins}`, canvas.width/2, 310);
+  ctx.font = '22px monospace';
+  ctx.fillText(`SCORE: ${score}   COINS: ${coins}`, canvas.width/2, 280);
+  ctx.fillStyle = '#888';
+  ctx.font = '12px monospace';
+  const deathQuotes = [
+    'The crabs send their regards.',
+    'Have you tried turning it off and on again?',
+    'Error: skill_not_found',
+    'Maybe try sudo next time?',
+    'The vibe was not immaculate.',
+    'git blame: you',
+  ];
+  ctx.fillText(deathQuotes[Math.floor(Date.now() / 4000) % deathQuotes.length], canvas.width/2, 320);
   if (Math.floor(titleBlink / 30) % 2 === 0) {
-    ctx.fillText('PRESS ENTER TO RETRY', canvas.width/2, 390);
+    ctx.fillStyle = '#0F0';
+    ctx.font = '18px monospace';
+    ctx.fillText('$ restart_process  [ENTER]', canvas.width/2, 390);
   }
   titleBlink++;
 }
 
 // --- WIN SCREEN ---
 function drawWin() {
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#FFD700';
-  ctx.font = 'bold 42px monospace';
+  ctx.fillStyle = '#0F0';
+  ctx.font = 'bold 36px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('LEVEL COMPLETE!', canvas.width/2, 180);
-  ctx.font = '64px serif';
-  ctx.fillText('🦀🎉🦀', canvas.width/2, 260);
+  ctx.fillText('$ git push origin main', canvas.width/2, 160);
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText('DEPLOYED SUCCESSFULLY ✓', canvas.width/2, 205);
+  ctx.font = '48px serif';
+  ctx.fillText('🦀🚀🦀', canvas.width/2, 270);
   ctx.fillStyle = '#FFF';
-  ctx.font = '24px monospace';
-  ctx.fillText(`SCORE: ${score}`, canvas.width/2, 320);
+  ctx.font = '20px monospace';
+  ctx.fillText(`build.score = ${score}`, canvas.width/2, 310);
+  ctx.fillStyle = '#888';
+  ctx.font = '13px monospace';
+  const winQuotes = [
+    'CI/CD pipeline passed (somehow)',
+    'Zero bugs found (we didn\'t test)',
+    'Merged to main without approval 😎',
+    'The vibes were indeed immaculate',
+    'Performance review: exceeds expectations',
+  ];
+  ctx.fillText(winQuotes[Math.floor(Date.now() / 3000) % winQuotes.length], canvas.width/2, 340);
   winTimer++;
   if (winTimer > 120) {
     if (level < LEVELS.length) {
       if (Math.floor(winTimer / 30) % 2 === 0) {
-        ctx.fillText('PRESS ENTER FOR NEXT LEVEL', canvas.width/2, 400);
+        ctx.fillStyle = '#0F0';
+        ctx.font = '18px monospace';
+        ctx.fillText('$ cd next_level  [ENTER]', canvas.width/2, 400);
       }
     } else {
       ctx.fillStyle = '#FFD700';
-      ctx.font = 'bold 28px monospace';
-      ctx.fillText('YOU SAVED THE CRABS!', canvas.width/2, 380);
+      ctx.font = 'bold 24px monospace';
+      ctx.fillText('🏆 ALL LEVELS SHIPPED! 🏆', canvas.width/2, 380);
+      ctx.fillStyle = '#888';
+      ctx.font = '14px monospace';
+      ctx.fillText('The crabs thank you for your service to open source', canvas.width/2, 410);
       if (Math.floor(winTimer / 30) % 2 === 0) {
-        ctx.fillStyle = '#FFF';
-        ctx.font = '20px monospace';
-        ctx.fillText('PRESS ENTER TO PLAY AGAIN', canvas.width/2, 430);
+        ctx.fillStyle = '#0F0';
+        ctx.font = '18px monospace';
+        ctx.fillText('$ git checkout -b new-game  [ENTER]', canvas.width/2, 445);
       }
     }
   }
@@ -998,7 +1082,7 @@ function drawHUD() {
   ctx.fillStyle = '#FFF';
   ctx.font = 'bold 16px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(`KLOD`, 16, 24);
+  ctx.fillText(`VIBE CODER`, 16, 24);
   ctx.fillText(`SCORE: ${score}`, 120, 24);
   ctx.fillStyle = '#FFD700';
   ctx.fillText(`🪙 ${coins}`, 340, 24);
@@ -1008,7 +1092,7 @@ function drawHUD() {
     // Blinking laser HUD indicator
     const blink = Math.floor(Date.now() / 300) % 2 === 0;
     ctx.fillStyle = blink ? '#0FF' : '#FFF';
-    ctx.fillText(`⚡ X=SHOOT ${Math.ceil(player.laserTimer / 60)}s`, 560, 24);
+    ctx.fillText(`⚡ [X]=PEW ${Math.ceil(player.laserTimer / 60)}s`, 560, 24);
   }
   ctx.fillStyle = '#FFF';
   ctx.fillText(`❤️ ${lives}`, 710, 24);
@@ -1173,13 +1257,13 @@ function update() {
         player.big = true;
         score += 500;
         sfxPowerup();
-        floatTexts.push({x: pu.x, y: pu.y - 10, text: 'CRAB POWER!', timer: 50, vy: -1.5});
+        floatTexts.push({x: pu.x, y: pu.y - 10, text: '🦀 sudo crab-up!', timer: 50, vy: -1.5});
       } else if (pu.type === 'starfish') {
         player.starTimer = 480;
         player.invincible = 480;
         score += 500;
         sfxStar();
-        floatTexts.push({x: pu.x, y: pu.y - 10, text: '⭐ STARFISH!', timer: 50, vy: -1.5});
+        floatTexts.push({x: pu.x, y: pu.y - 10, text: '⭐ GOD MODE ON', timer: 50, vy: -1.5});
       } else if (pu.type === 'oneup') {
         lives++;
         sfxOneUp();
@@ -1188,7 +1272,7 @@ function update() {
         player.laserTimer = 600; // ~10 seconds
         score += 300;
         sfxPowerup();
-        floatTexts.push({x: pu.x, y: pu.y - 10, text: '⚡ LASER! Press X to shoot!', timer: 90, vy: -1});
+        floatTexts.push({x: pu.x, y: pu.y - 10, text: '⚡ VIBE LASER! [X] to pew pew!', timer: 90, vy: -1});
       }
       const puColor = pu.type === 'oneup' ? '#0F0' : pu.type === 'laser' ? '#0FF' : pu.type === 'crab' ? '#F66' : '#FFD700';
       for (let i = 0; i < 8; i++) {
