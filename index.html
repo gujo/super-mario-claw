@@ -2521,8 +2521,17 @@ function render() {
 
 // --- GAME LOOP ---
 function gameLoop() {
-  update();
-  render();
+  try {
+    update();
+    render();
+  } catch(e) {
+    ctx.fillStyle = '#F00';
+    ctx.font = '14px monospace';
+    ctx.fillText('ERROR: ' + e.message, 10, 50);
+    ctx.fillText('Line: ' + (e.stack||'').split('\n')[1], 10, 70);
+    console.error(e);
+    return; // Stop loop on error
+  }
   requestAnimationFrame(gameLoop);
 }
 
