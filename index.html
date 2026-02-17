@@ -453,6 +453,8 @@ let level = 1;
 let cameraX = 0;
 let deathTimer = 0;
 let winTimer = 0;
+let bossWinTimer = 0;
+let bossWinSpoken = false;
 let titleBlink = 0;
 let particles = [];
 let floatTexts = [];
@@ -1575,8 +1577,12 @@ function loadLevel(n) {
       levelTiles.push({x: sx, y: 7, t: 3, powerup: 'starfish'});
     }
   }
-  // Flag is always at its normal position — boss guards it
-  flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
+  // On boss levels, flag is invisible (cutscene replaces it)
+  if (BOSS_LEVELS.includes(n)) {
+    flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE}; // position used for trigger area
+  } else {
+    flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
+  }
   player.x = L.playerStart.x * TILE;
   player.y = L.playerStart.y * TILE;
   player.vx = 0;
@@ -1999,6 +2005,7 @@ function drawCoin(coin) {
 }
 
 function drawFlag() {
+  if (BOSS_LEVELS.includes(level)) return; // no flag on boss levels
   const px = Math.round(flagPos.x - cameraX);
   const py = Math.round(flagPos.y);
   // Pole
@@ -2177,34 +2184,16 @@ function drawWin() {
   ctx.font = '20px monospace';
   ctx.fillText(`build.score = ${score}`, canvas.width/2, 310);
 
-  // "Thank you Clawdio" message on boss levels
-  if (BOSS_LEVELS.includes(level)) {
-    const castleMessages = [
-      'Thank you Clawdio!\nBut your API tokens are in another castle!',
-      'Thank you Clawdio!\nBut the production database is in another castle!',
-      'Thank you Clawdio!\nBut the deployment pipeline is in another castle!',
-      'Thank you Clawdio!\nBut the sprint backlog is in another castle!',
-    ];
-    const worldIdx = Math.min(Math.floor((level-1)/4), castleMessages.length-1);
-    ctx.fillStyle = '#FFF';
-    ctx.font = '16px monospace';
-    const lines = castleMessages[worldIdx].split('\n');
-    ctx.fillText(lines[0], canvas.width/2, 340);
-    ctx.fillStyle = '#F88';
-    ctx.font = 'bold 14px monospace';
-    ctx.fillText(lines[1], canvas.width/2, 362);
-  } else {
-    ctx.fillStyle = '#888';
-    ctx.font = '13px monospace';
-    const winQuotes = [
-      'CI/CD pipeline passed (somehow)',
-      'Zero bugs found (we didn\'t test)',
-      'Merged to main without approval 😎',
-      'The vibes were indeed immaculate',
-      'Performance review: exceeds expectations',
-    ];
-    ctx.fillText(winQuotes[Math.floor(Date.now() / 3000) % winQuotes.length], canvas.width/2, 340);
-  }
+  ctx.fillStyle = '#888';
+  ctx.font = '13px monospace';
+  const winQuotes = [
+    'CI/CD pipeline passed (somehow)',
+    'Zero bugs found (we didn\'t test)',
+    'Merged to main without approval 😎',
+    'The vibes were indeed immaculate',
+    'Performance review: exceeds expectations',
+  ];
+  ctx.fillText(winQuotes[Math.floor(Date.now() / 3000) % winQuotes.length], canvas.width/2, 340);
   winTimer++;
   if (winTimer > 120) {
     if (level < LEVELS.length) {
@@ -2298,6 +2287,45 @@ function update() {
   if (gameState === 'win') {
     winTimer++;
     if (keys['Enter'] && winTimer > 120) {
+      if (level < LEVELS.length) {
+        level++;
+        loadLevel(level);
+        gameState = 'playing';
+        playMusic();
+      } else {
+        gameState = 'title';
+      }
+      keys['Enter'] = false;
+    }
+    return;
+  }
+
+  if (gameState === 'bossWin') {
+    bossWinTimer++;
+    // Auto-walk player right
+    if (bossWinTimer < 90) {
+      player.vx = 3;
+      player.x += player.vx;
+      player.vy += GRAVITY;
+      player.y += player.vy;
+      worldCollide(player);
+      player.frame++;
+      player.facing = 1;
+    }
+    // Speak the line once
+    if (bossWinTimer === 60 && !bossWinSpoken) {
+      bossWinSpoken = true;
+      const castleLines = [
+        'Thank you Clawdio! But your API tokens are in another castle!',
+        'Thank you Clawdio! But the production database is in another castle!',
+        'Thank you Clawdio! But the deployment pipeline is in another castle!',
+        'Thank you Clawdio! But the sprint backlog is in another castle!',
+      ];
+      const worldIdx = Math.min(Math.floor((level-1)/4), castleLines.length-1);
+      speakVoice(castleLines[worldIdx], 1.1, 0.85);
+    }
+    if (keys['Enter'] && bossWinTimer > 180) {
+      bossWinSpoken = false;
       if (level < LEVELS.length) {
         level++;
         loadLevel(level);
@@ -2786,11 +2814,20 @@ function update() {
   // Boss update
   updateBoss();
 
-  // Flag (skip on boss levels — win is triggered by defeating boss)
-  if (!BOSS_LEVELS.includes(level) || (boss && boss.defeated)) {
+  // Flag — normal levels get flag, boss levels get cutscene room
+  if (!BOSS_LEVELS.includes(level)) {
     if (player.x + player.width > flagPos.x && player.x < flagPos.x + TILE) {
       gameState = 'win';
       winTimer = 0;
+      score += 1000;
+      stopMusic();
+      sfxWin();
+    }
+  } else if (boss && boss.defeated) {
+    // Boss defeated — trigger cutscene when player reaches flag area
+    if (player.x + player.width > flagPos.x - TILE * 2 && gameState === 'playing') {
+      gameState = 'bossWin';
+      bossWinTimer = 0;
       score += 1000;
       stopMusic();
       sfxWin();
@@ -3563,6 +3600,123 @@ function render() {
   drawHUD();
 
   if (gameState === 'win') drawWin();
+
+  // Boss win cutscene — mushroom hat guy in a room
+  if (gameState === 'bossWin') {
+    ctx.save();
+    // Dark overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Room
+    const rx = canvas.width/2 - 150, ry = 80, rw = 300, rh = 300;
+    // Floor
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(rx, ry+rh-40, rw, 40);
+    // Walls
+    ctx.fillStyle = '#654321';
+    ctx.fillRect(rx, ry, 20, rh);
+    ctx.fillRect(rx+rw-20, ry, 20, rh);
+    // Back wall
+    ctx.fillStyle = '#4a3520';
+    ctx.fillRect(rx+20, ry, rw-40, rh-40);
+    // Torch on wall
+    const torchFlicker = Math.sin(Date.now()*0.01)*3;
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(rx+40, ry+60, 8, 20);
+    ctx.fillStyle = `rgba(255,${150+torchFlicker*10},0,0.8)`;
+    ctx.beginPath();
+    ctx.ellipse(rx+44, ry+55+torchFlicker, 8, 12, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillRect(rx+rw-48, ry+60, 8, 20);
+    ctx.fillStyle = `rgba(255,${150-torchFlicker*10},0,0.8)`;
+    ctx.beginPath();
+    ctx.ellipse(rx+rw-44, ry+55-torchFlicker, 8, 12, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Mushroom hat character (Toad-like)
+    const mx = canvas.width/2, my = ry+rh-80;
+    // Body
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(mx-10, my+5, 20, 20);
+    // Vest
+    ctx.fillStyle = '#4040C0';
+    ctx.fillRect(mx-8, my+8, 16, 14);
+    // Head
+    ctx.fillStyle = '#FFE0C0';
+    ctx.beginPath();
+    ctx.arc(mx, my, 12, 0, Math.PI*2);
+    ctx.fill();
+    // Mushroom hat!
+    ctx.fillStyle = '#FF2020';
+    ctx.beginPath();
+    ctx.ellipse(mx, my-8, 18, 14, 0, Math.PI, 0);
+    ctx.fill();
+    // White spots on hat
+    ctx.fillStyle = '#FFF';
+    ctx.beginPath(); ctx.arc(mx-8, my-14, 4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(mx+6, my-16, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(mx+1, my-10, 3, 0, Math.PI*2); ctx.fill();
+    // Eyes
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(mx-4, my-2, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(mx+4, my-2, 2, 0, Math.PI*2); ctx.fill();
+    // Mouth — sad/apologetic
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(mx, my+5, 4, 0, Math.PI);
+    ctx.stroke();
+
+    // Speech bubble
+    if (bossWinTimer > 60) {
+      const castleMessages = [
+        ['Thank you Clawdio!', 'But your API tokens are', 'in another castle!'],
+        ['Thank you Clawdio!', 'But the production database is', 'in another castle!'],
+        ['Thank you Clawdio!', 'But the deployment pipeline is', 'in another castle!'],
+        ['Thank you Clawdio!', 'But the sprint backlog is', 'in another castle!'],
+      ];
+      const worldIdx = Math.min(Math.floor((level-1)/4), castleMessages.length-1);
+      const lines = castleMessages[worldIdx];
+      // Bubble
+      const bw = 260, bh = 70;
+      const bx = mx - bw/2, by = ry + 20;
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, bw, bh, 10);
+      ctx.fill();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+      ctx.stroke();
+      // Tail
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.moveTo(mx-8, by+bh); ctx.lineTo(mx, by+bh+12); ctx.lineTo(mx+8, by+bh);
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.beginPath();
+      ctx.moveTo(mx-8, by+bh); ctx.lineTo(mx, by+bh+12); ctx.lineTo(mx+8, by+bh);
+      ctx.stroke();
+      // Text
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(lines[0], mx, by+22);
+      ctx.font = '12px monospace';
+      ctx.fillStyle = '#C00';
+      ctx.fillText(lines[1], mx, by+40);
+      ctx.fillText(lines[2], mx, by+56);
+      ctx.textAlign = 'left';
+    }
+
+    // Continue prompt
+    if (bossWinTimer > 180 && Math.floor(bossWinTimer/30)%2===0) {
+      ctx.fillStyle = '#0F0';
+      ctx.font = '16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Press ENTER to continue', canvas.width/2, ry+rh+30);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  }
 
   // Teleport transition
   if (teleporting) {
