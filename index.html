@@ -441,6 +441,21 @@ window.addEventListener('keydown', e => {
       const w = Math.ceil(level/4), s = ((level-1)%4)+1;
       floatTexts.push({x: player.x, y: player.y - 20, text: `WARPED TO ${w}-${s}`, timer: 60, vy: -1.5});
     }
+    // K/L to jump one level back/forward
+    if (e.code === 'KeyL' && level < LEVELS.length) {
+      level++;
+      loadLevel(level);
+      stopMusic(); playMusic();
+      const w = Math.ceil(level/4), s = ((level-1)%4)+1;
+      floatTexts.push({x: player.x, y: player.y - 20, text: `» ${w}-${s}`, timer: 60, vy: -1.5});
+    }
+    if (e.code === 'KeyK' && level > 1) {
+      level--;
+      loadLevel(level);
+      stopMusic(); playMusic();
+      const w = Math.ceil(level/4), s = ((level-1)%4)+1;
+      floatTexts.push({x: player.x, y: player.y - 20, text: `« ${w}-${s}`, timer: 60, vy: -1.5});
+    }
   }
 });
 
