@@ -542,7 +542,7 @@ const LEVELS = [
       {x:15,y:12},{x:34,y:12},{x:48,y:12},
       {x:62,y:12},{x:78,y:12},{x:90,y:12}
     ],
-    seagulls:[{x:25,y:3},{x:85,y:4}],
+    seagulls: [{x:25,y:3},{x:55,y:2},{x:85,y:4}],
     tubes: [{x:30,y:11,destLevel:3,destX:5,destY:10,color:'#0FF'},{x:70,y:11,destLevel:7,destX:5,destY:10,color:'#F0F'}],
     flag:{x:117, y: 3},
     playerStart: {x: 2, y: 12}
@@ -593,7 +593,7 @@ const LEVELS = [
       {x:74,y:12},{x:97,y:12},{x:115,y:12}
     ],
     urchins: [{x:42,y:12},{x:70,y:12},{x:100,y:12}],
-    seagulls:[{x:20,y:2},{x:90,y:2}],
+    seagulls: [{x:20,y:2},{x:60,y:3},{x:90,y:2},{x:110,y:4}],
     tubes: [{x:55,y:11,destLevel:5,destX:5,destY:10,color:'#F80'}],
     flag: {x: 137, y: 3},
     playerStart: {x: 2, y: 12}
@@ -699,7 +699,7 @@ const LEVELS = [
       {x:97,y:8},{x:104,y:6},{x:109,y:4},{x:121,y:8},{x:127,y:5},{x:133,y:7}
     ],
     crabs: [{x:15,y:12},{x:35,y:12},{x:57,y:12},{x:82,y:12},{x:100,y:12},{x:130,y:12}],
-    seagulls:[{x:28,y:2},{x:75,y:2},{x:125,y:2}],
+    seagulls: [{x:28,y:2},{x:50,y:3},{x:75,y:2},{x:105,y:3},{x:125,y:2}],
     urchins: [{x:55,y:12},{x:88,y:12},{x:112,y:12}],
     tubes: [{x:40,y:11,destLevel:8,destX:5,destY:10,color:'#F0F'},{x:90,y:11,destLevel:2,destX:5,destY:10,color:'#0FF'}],
     flag: {x: 157, y: 3},
@@ -744,7 +744,7 @@ const LEVELS = [
     ],
     crabs: [{x:12,y:12},{x:26,y:12},{x:42,y:12},{x:60,y:12},{x:80,y:12},{x:103,y:12}],
     urchins: [{x:20,y:12},{x:48,y:12},{x:66,y:12},{x:92,y:12}],
-    seagulls:[{x:30,y:3},{x:75,y:3}],
+    seagulls: [{x:30,y:3},{x:55,y:2},{x:75,y:3},{x:95,y:2}],
     flag:{x:127, y: 3},
     playerStart: {x: 2, y: 12},
     tubes: [{x:50,y:11,destLevel:6,destX:5,destY:10,color:'#0F0'},{x:90,y:11,destLevel:8,destX:5,destY:10,color:'#F0F'}]
@@ -764,7 +764,7 @@ const LEVELS = [
     ],
     coins:[{x:8,y:8},{x:17,y:6},{x:22,y:4},{x:30,y:8},{x:42,y:4},{x:56,y:8},{x:63,y:5},{x:79,y:8},{x:87,y:5},{x:105,y:8},{x:113,y:6}],
     crabs:[{x:14,y:12},{x:34,y:12},{x:48,y:12},{x:60,y:12},{x:72,y:12},{x:90,y:12},{x:108,y:12}],
-    seagulls:[{x:20,y:2},{x:85,y:2}],
+    seagulls:[{x:20,y:2},{x:55,y:3},{x:85,y:2},{x:110,y:3}],
     urchins:[{x:40,y:12},{x:70,y:12},{x:98,y:12}],
     tubes:[{x:45,y:11,destLevel:7,destX:3,destY:10,color:'#0F0'},{x:95,y:11,destLevel:9,destX:5,destY:10,color:'#0FF'}],
     flag:{x:137,y:3},playerStart:{x:2,y:12}
@@ -828,7 +828,7 @@ const LEVELS = [
     ],
     coins:[{x:11,y:8},{x:18,y:5},{x:26,y:8},{x:36,y:8},{x:43,y:5},{x:48,y:3},{x:61,y:8},{x:69,y:5},{x:86,y:8},{x:93,y:5},{x:100,y:3},{x:116,y:8}],
     crabs:[{x:14,y:12},{x:28,y:12},{x:40,y:12},{x:52,y:12},{x:66,y:12},{x:78,y:12},{x:90,y:12},{x:108,y:12},{x:120,y:12}],
-    seagulls:[{x:22,y:2},{x:72,y:2},{x:118,y:2}],
+    seagulls:[{x:22,y:2},{x:50,y:3},{x:72,y:2},{x:98,y:3},{x:118,y:2}],
     urchins:[{x:38,y:12},{x:64,y:12},{x:96,y:12},{x:112,y:12}],
     tubes:[{x:25,y:11,destLevel:6,destX:60,destY:10,color:'#F0F'},{x:105,y:11,destLevel:10,destX:3,destY:10,color:'#FFF'}],
     flag:{x:147,y:3},playerStart:{x:2,y:12}
@@ -853,7 +853,7 @@ const LEVELS = [
     crabs:[{x:15,y:12},{x:32,y:12},{x:53,y:12},{x:77,y:12},{x:88,y:12},{x:102,y:12},{x:115,y:12},{x:130,y:12}],
     urchins:[{x:38,y:12},{x:60,y:12},{x:84,y:12},{x:108,y:12},{x:128,y:12}],
     jellyfish:[{x:25,y:5},{x:45,y:4},{x:70,y:6},{x:95,y:5},{x:120,y:4}],
-    seagulls:[{x:20,y:2},{x:82,y:2}],
+    seagulls:[{x:20,y:2},{x:55,y:3},{x:82,y:2},{x:112,y:3}],
     tubes:[{x:35,y:11,destLevel:1,destX:3,destY:10,color:'#888'}],
     flag:{x:157,y:3},playerStart:{x:2,y:12}
   },
@@ -876,7 +876,7 @@ const LEVELS = [
     coins:[{x:8,y:8},{x:16,y:5},{x:23,y:7},{x:31,y:8},{x:39,y:5},{x:45,y:3},{x:57,y:8},{x:64,y:5},{x:71,y:7},{x:77,y:4},{x:85,y:8},{x:91,y:5},{x:101,y:8},{x:106,y:6},{x:120,y:6}],
     crabs:[{x:12,y:12},{x:35,y:12},{x:60,y:12},{x:88,y:12},{x:103,y:12},{x:118,y:12}],
     urchins:[{x:20,y:12},{x:45,y:12},{x:74,y:12},{x:97,y:12},{x:115,y:12}],
-    seagulls:[{x:30,y:2},{x:95,y:2}],
+    seagulls:[{x:30,y:2},{x:65,y:3},{x:95,y:2}],
     tubes:[{x:40,y:11,destLevel:3,destX:5,destY:10,color:'#0F0'}],
     flag:{x:137,y:3},playerStart:{x:2,y:12}
   },
@@ -900,7 +900,7 @@ const LEVELS = [
     crabs:[{x:15,y:12},{x:40,y:12},{x:58,y:12},{x:72,y:12},{x:100,y:12},{x:112,y:12},{x:128,y:12}],
     jellyfish:[{x:22,y:5},{x:48,y:4},{x:78,y:6},{x:108,y:5}],
     urchins:[{x:28,y:12},{x:53,y:12},{x:85,y:12},{x:118,y:12}],
-    seagulls:[{x:35,y:2},{x:105,y:2}],
+    seagulls:[{x:35,y:2},{x:70,y:3},{x:105,y:2}],
     tubes:[{x:50,y:11,destLevel:7,destX:5,destY:10,color:'#808'}],
     flag:{x:147,y:3},playerStart:{x:2,y:12}
   },
@@ -920,7 +920,7 @@ const LEVELS = [
     ],
     coins:[{x:8,y:7},{x:15,y:5},{x:27,y:8},{x:33,y:5},{x:40,y:3},{x:52,y:8},{x:58,y:5},{x:65,y:7},{x:77,y:8},{x:84,y:5},{x:90,y:3},{x:96,y:7},{x:106,y:8},{x:113,y:5}],
     crabs:[{x:12,y:12},{x:30,y:12},{x:55,y:12},{x:80,y:12},{x:98,y:12},{x:115,y:12}],
-    seagulls:[{x:18,y:2},{x:68,y:2},{x:110,y:2}],
+    seagulls:[{x:18,y:2},{x:42,y:3},{x:68,y:2},{x:88,y:3},{x:110,y:2}],
     tubes:[{x:35,y:11,destLevel:5,destX:5,destY:10,color:'#0FF'}],
     flag:{x:127,y:3},playerStart:{x:2,y:12}
   },
@@ -942,7 +942,7 @@ const LEVELS = [
     coins:[{x:11,y:8},{x:18,y:5},{x:26,y:7},{x:34,y:8},{x:43,y:5},{x:48,y:3},{x:62,y:8},{x:69,y:5},{x:79,y:7},{x:89,y:8},{x:96,y:5},{x:104,y:7},{x:116,y:8},{x:123,y:5}],
     crabs:[{x:15,y:12},{x:38,y:12},{x:52,y:12},{x:72,y:12},{x:93,y:12},{x:108,y:12},{x:125,y:12}],
     urchins:[{x:22,y:12},{x:45,y:12},{x:65,y:12},{x:100,y:12},{x:120,y:12}],
-    seagulls:[{x:20,y:2},{x:80,y:2}],
+    seagulls:[{x:20,y:2},{x:50,y:3},{x:80,y:2},{x:110,y:3}],
     tubes:[{x:70,y:11,destLevel:9,destX:5,destY:10,color:'#F80'}],
     flag:{x:137,y:3},playerStart:{x:2,y:12}
   },
@@ -964,98 +964,11 @@ const LEVELS = [
     crabs:[{x:12,y:12},{x:32,y:12},{x:57,y:12},{x:70,y:12},{x:85,y:12},{x:98,y:12},{x:115,y:12},{x:138,y:12}],
     jellyfish:[{x:18,y:5},{x:44,y:4},{x:65,y:6},{x:92,y:5},{x:122,y:4}],
     urchins:[{x:26,y:12},{x:52,y:12},{x:78,y:12},{x:108,y:12},{x:132,y:12}],
-    seagulls:[{x:25,y:2},{x:85,y:2}],
+    seagulls:[{x:25,y:2},{x:55,y:3},{x:85,y:2},{x:115,y:3}],
     tubes:[{x:60,y:11,destLevel:11,destX:5,destY:10,color:'#A0F'}],
     flag:{x:147,y:3},playerStart:{x:2,y:12}
   },
-  // Level 16 — TOXIC SWAMP (World 5-1)
-  {
-    width: 140, bg: '#0a1a0a', groundColor: '#2a3a1a', brickColor: '#3a4a2a', swamp: true,
-    platforms: [
-      ...Array.from({length:140},(_,i)=>{if((i>=22&&i<=26)||(i>=45&&i<=50)||(i>=70&&i<=75)||(i>=100&&i<=104))return null;return{x:i,y:14,t:1}}).filter(Boolean),
-      ...Array.from({length:140},(_,i)=>{if((i>=22&&i<=26)||(i>=45&&i<=50)||(i>=70&&i<=75)||(i>=100&&i<=104))return null;return{x:i,y:13,t:1}}).filter(Boolean),
-      {x:8,y:10,t:2},{x:9,y:10,t:3},{x:15,y:7,t:3},{x:16,y:7,t:2},{x:20,y:5,t:3},
-      {x:27,y:10,t:2},{x:28,y:10,t:3},{x:33,y:7,t:2},{x:34,y:7,t:3},{x:39,y:5,t:2},
-      {x:51,y:10,t:3},{x:52,y:10,t:2},{x:57,y:7,t:2},{x:58,y:7,t:3},{x:63,y:5,t:3},
-      {x:76,y:10,t:2},{x:77,y:10,t:3},{x:82,y:7,t:2},{x:83,y:7,t:3},{x:88,y:5,t:2},
-      {x:93,y:9,t:2},{x:94,y:9,t:3},{x:105,y:10,t:2},{x:106,y:10,t:3},{x:112,y:7,t:3},
-      {x:118,y:9,t:2},{x:119,y:9,t:3},{x:125,y:12,t:1},{x:126,y:12,t:1},{x:126,y:11,t:1},
-      {x:127,y:12,t:1},{x:127,y:11,t:1},{x:127,y:10,t:1},
-    ],
-    coins:[{x:9,y:8},{x:16,y:5},{x:20,y:3},{x:28,y:8},{x:34,y:5},{x:52,y:8},{x:58,y:5},{x:63,y:3},{x:77,y:8},{x:83,y:5},{x:94,y:7},{x:106,y:8},{x:112,y:5}],
-    crabs:[{x:12,y:12},{x:30,y:12},{x:55,y:12},{x:80,y:12},{x:96,y:12},{x:110,y:12},{x:122,y:12}],
-    jellyfish:[{x:24,y:5},{x:48,y:4},{x:73,y:6},{x:102,y:5}],
-    urchins:[{x:18,y:12},{x:42,y:12},{x:66,y:12},{x:90,y:12},{x:116,y:12}],
-    seagulls:[{x:35,y:2},{x:85,y:3}],
-    tubes:[{x:60,y:11,destLevel:12,destX:5,destY:10,color:'#4A0'}],
-    flag:{x:137,y:3},playerStart:{x:2,y:12}
-  },
-  // Level 17 — RETRO ARCADE (World 5-2)
-  {
-    width: 135, bg: '#000022', groundColor: '#FF00FF', brickColor: '#00FFFF', neonCity: true,
-    platforms: [
-      ...Array.from({length:135},(_,i)=>{if((i>=25&&i<=29)||(i>=50&&i<=54)||(i>=75&&i<=79)||(i>=105&&i<=109))return null;return{x:i,y:14,t:1}}).filter(Boolean),
-      ...Array.from({length:135},(_,i)=>{if((i>=25&&i<=29)||(i>=50&&i<=54)||(i>=75&&i<=79)||(i>=105&&i<=109))return null;return{x:i,y:13,t:1}}).filter(Boolean),
-      {x:8,y:9,t:3},{x:9,y:9,t:2},{x:14,y:7,t:2},{x:15,y:7,t:3},{x:20,y:5,t:3},
-      {x:30,y:10,t:2},{x:31,y:10,t:3},{x:36,y:7,t:3},{x:37,y:7,t:2},{x:43,y:5,t:2},
-      {x:55,y:10,t:2},{x:56,y:10,t:3},{x:62,y:7,t:2},{x:63,y:7,t:3},{x:68,y:5,t:3},
-      {x:80,y:10,t:2},{x:81,y:10,t:3},{x:87,y:7,t:2},{x:88,y:7,t:3},{x:94,y:5,t:2},
-      {x:99,y:9,t:3},{x:100,y:9,t:2},{x:110,y:10,t:2},{x:111,y:10,t:3},
-      {x:118,y:7,t:2},{x:119,y:7,t:3},{x:125,y:12,t:1},{x:126,y:12,t:1},{x:126,y:11,t:1},
-      {x:127,y:12,t:1},{x:127,y:11,t:1},{x:127,y:10,t:1},
-    ],
-    coins:[{x:9,y:7},{x:15,y:5},{x:20,y:3},{x:31,y:8},{x:37,y:5},{x:43,y:3},{x:56,y:8},{x:63,y:5},{x:68,y:3},{x:81,y:8},{x:88,y:5},{x:100,y:7},{x:111,y:8},{x:119,y:5}],
-    crabs:[{x:12,y:12},{x:34,y:12},{x:58,y:12},{x:72,y:12},{x:85,y:12},{x:103,y:12},{x:115,y:12}],
-    urchins:[{x:22,y:12},{x:48,y:12},{x:70,y:12},{x:97,y:12},{x:113,y:12}],
-    seagulls:[{x:40,y:2},{x:90,y:3}],
-    tubes:[{x:65,y:11,destLevel:14,destX:5,destY:10,color:'#F0F'}],
-    flag:{x:132,y:3},playerStart:{x:2,y:12}
-  },
-  // Level 18 — FROZEN TUNDRA (World 5-3)
-  {
-    width: 145, bg: '#C8E8FF', groundColor: '#E8F0FF', brickColor: '#B0C4DE',
-    platforms: [
-      ...Array.from({length:145},(_,i)=>{if((i>=28&&i<=33)||(i>=55&&i<=60)||(i>=82&&i<=87)||(i>=112&&i<=117))return null;return{x:i,y:14,t:1}}).filter(Boolean),
-      ...Array.from({length:145},(_,i)=>{if((i>=28&&i<=33)||(i>=55&&i<=60)||(i>=82&&i<=87)||(i>=112&&i<=117))return null;return{x:i,y:13,t:1}}).filter(Boolean),
-      {x:10,y:10,t:2},{x:11,y:10,t:3},{x:16,y:7,t:3},{x:17,y:7,t:2},{x:22,y:5,t:3},
-      {x:34,y:10,t:2},{x:35,y:10,t:3},{x:40,y:7,t:2},{x:41,y:7,t:3},{x:47,y:5,t:2},
-      {x:52,y:9,t:3},{x:53,y:9,t:2},{x:61,y:10,t:2},{x:62,y:10,t:3},{x:68,y:7,t:2},{x:69,y:7,t:3},
-      {x:75,y:5,t:3},{x:80,y:9,t:2},{x:81,y:9,t:3},{x:88,y:10,t:2},{x:89,y:10,t:3},
-      {x:95,y:7,t:2},{x:96,y:7,t:3},{x:102,y:5,t:2},{x:107,y:9,t:3},{x:108,y:9,t:2},
-      {x:118,y:10,t:2},{x:119,y:10,t:3},{x:125,y:7,t:2},{x:126,y:7,t:3},
-      {x:132,y:12,t:1},{x:133,y:12,t:1},{x:133,y:11,t:1},{x:134,y:12,t:1},{x:134,y:11,t:1},{x:134,y:10,t:1},
-    ],
-    coins:[{x:11,y:8},{x:17,y:5},{x:22,y:3},{x:35,y:8},{x:41,y:5},{x:47,y:3},{x:53,y:7},{x:62,y:8},{x:69,y:5},{x:75,y:3},{x:81,y:7},{x:89,y:8},{x:96,y:5},{x:108,y:7},{x:119,y:8},{x:126,y:5}],
-    crabs:[{x:14,y:12},{x:38,y:12},{x:65,y:12},{x:78,y:12},{x:92,y:12},{x:110,y:12},{x:128,y:12}],
-    jellyfish:[{x:26,y:5},{x:58,y:4},{x:85,y:6},{x:115,y:5}],
-    urchins:[{x:20,y:12},{x:50,y:12},{x:73,y:12},{x:100,y:12},{x:124,y:12}],
-    seagulls:[{x:45,y:2},{x:105,y:3}],
-    tubes:[{x:70,y:11,destLevel:10,destX:5,destY:10,color:'#8CF'}],
-    flag:{x:142,y:3},playerStart:{x:2,y:12}
-  },
-  // Level 19 — SERVER ROOM (World 5-4, BOSS)
-  {
-    width: 155, bg: '#080810', groundColor: '#1a1a2a', brickColor: '#2a2a3a', matrix: true,
-    platforms: [
-      ...Array.from({length:155},(_,i)=>{if((i>=25&&i<=30)||(i>=52&&i<=57)||(i>=80&&i<=85)||(i>=110&&i<=115)||(i>=135&&i<=139))return null;return{x:i,y:14,t:1}}).filter(Boolean),
-      ...Array.from({length:155},(_,i)=>{if((i>=25&&i<=30)||(i>=52&&i<=57)||(i>=80&&i<=85)||(i>=110&&i<=115)||(i>=135&&i<=139))return null;return{x:i,y:13,t:1}}).filter(Boolean),
-      {x:10,y:10,t:3},{x:11,y:10,t:2},{x:16,y:7,t:2},{x:17,y:7,t:3},{x:22,y:5,t:3},
-      {x:31,y:10,t:2},{x:32,y:10,t:3},{x:38,y:7,t:2},{x:39,y:7,t:3},{x:45,y:5,t:2},
-      {x:50,y:9,t:3},{x:51,y:9,t:2},{x:58,y:10,t:2},{x:59,y:10,t:3},{x:65,y:7,t:2},{x:66,y:7,t:3},
-      {x:72,y:5,t:3},{x:77,y:9,t:2},{x:78,y:9,t:3},{x:86,y:10,t:2},{x:87,y:10,t:3},
-      {x:93,y:7,t:2},{x:94,y:7,t:3},{x:100,y:5,t:2},{x:105,y:9,t:3},{x:106,y:9,t:2},
-      {x:116,y:10,t:2},{x:117,y:10,t:3},{x:123,y:7,t:2},{x:124,y:7,t:3},{x:130,y:5,t:3},
-      {x:140,y:10,t:2},{x:141,y:10,t:3},{x:145,y:8,t:2},{x:146,y:8,t:2},
-    ],
-    coins:[{x:11,y:8},{x:17,y:5},{x:22,y:3},{x:32,y:8},{x:39,y:5},{x:45,y:3},{x:51,y:7},{x:59,y:8},{x:66,y:5},{x:72,y:3},{x:78,y:7},{x:87,y:8},{x:94,y:5},{x:100,y:3},{x:106,y:7},{x:117,y:8},{x:124,y:5},{x:130,y:3},{x:141,y:8}],
-    crabs:[{x:14,y:12},{x:35,y:12},{x:62,y:12},{x:75,y:12},{x:90,y:12},{x:108,y:12},{x:120,y:12},{x:143,y:12}],
-    urchins:[{x:20,y:12},{x:48,y:12},{x:70,y:12},{x:98,y:12},{x:128,y:12}],
-    jellyfish:[{x:28,y:5},{x:55,y:4},{x:83,y:6},{x:113,y:5},{x:137,y:4}],
-    seagulls:[{x:40,y:2},{x:95,y:3}],
-    tubes:[{x:65,y:11,destLevel:1,destX:3,destY:10,color:'#0F0'}],
-    flag:{x:152,y:3},playerStart:{x:2,y:12}
-  },
-  // Level 20 — THE FINAL DEPLOY (World 5-5, FINAL BOSS)
+  // Level 16 — THE FINAL DEPLOY (World 4-4, FINAL BOSS)
   {
     width: 170, bg: '#050005', groundColor: '#1a0a1a', brickColor: '#2a0a2a', theVoid: true,
     platforms: [
@@ -1075,7 +988,7 @@ const LEVELS = [
     crabs:[{x:14,y:12},{x:35,y:12},{x:60,y:12},{x:73,y:12},{x:90,y:12},{x:103,y:12},{x:120,y:12},{x:137,y:12},{x:150,y:12}],
     urchins:[{x:20,y:12},{x:42,y:12},{x:68,y:12},{x:96,y:12},{x:126,y:12},{x:148,y:12}],
     jellyfish:[{x:28,y:5},{x:54,y:4},{x:82,y:6},{x:112,y:5},{x:142,y:4}],
-    seagulls:[{x:22,y:2},{x:76,y:2},{x:136,y:2}],
+    seagulls:[{x:22,y:2},{x:48,y:3},{x:76,y:2},{x:106,y:3},{x:136,y:2},{x:155,y:3}],
     tubes:[{x:40,y:11,destLevel:1,destX:3,destY:10,color:'#FFF'}],
     flag:{x:167,y:3},playerStart:{x:2,y:12}
   }
@@ -1101,7 +1014,6 @@ let jiraTickets = [];
 // Boss on every X-4 level (every 4th)
 const BOSS_LEVELS = [];
 for (let i = 4; i <= 20; i += 4) BOSS_LEVELS.push(i);
-BOSS_LEVELS.push(19); // Server Room boss
 const JIRA_LABELS = ['CRAB-404','CRAB-500','CRAB-1337','PROD-911','DEPLOY-0','HOTFIX-69','SPRINT-∞','RETRO-666','STANDUP-5h','BLOCKER!!','P0 URGENT','WONTFIX'];
 const BOSS_QUOTES = [
   "Did you log that in Jira?",
@@ -2233,10 +2145,10 @@ function drawGameOver() {
   ctx.fillText('Process "vibe_coder" terminated (signal 11)', canvas.width/2, 205);
   ctx.fillStyle = '#0F0';
   ctx.font = '14px monospace';
-  ctx.fillText(`$ cat /var/log/total-comp.txt`, canvas.width/2, 245);
+  ctx.fillText(`$ cat /var/log/score.txt`, canvas.width/2, 245);
   ctx.fillStyle = '#FFF';
   ctx.font = '22px monospace';
-  ctx.fillText(`TOTAL COMP: ${score}   TOKENS: ${coins}`, canvas.width/2, 280);
+  ctx.fillText(`SCORE: ${score}   COINS: ${coins}`, canvas.width/2, 280);
   ctx.fillStyle = '#888';
   ctx.font = '12px monospace';
   const deathQuotes = [
@@ -2271,7 +2183,7 @@ function drawWin() {
   ctx.fillText('🦀🚀🦀', canvas.width/2, 270);
   ctx.fillStyle = '#FFF';
   ctx.font = '20px monospace';
-  ctx.fillText(`total.comp = ${score}`, canvas.width/2, 310);
+  ctx.fillText(`build.score = ${score}`, canvas.width/2, 310);
 
   ctx.fillStyle = '#888';
   ctx.font = '13px monospace';
@@ -2316,7 +2228,7 @@ function drawHUD() {
   ctx.font = 'bold 16px monospace';
   ctx.textAlign = 'left';
   ctx.fillText(`❤️x${lives}`, 16, 24);
-  ctx.fillText(`TOTAL COMP: ${score}`, 80, 24);
+  ctx.fillText(`SCORE: ${score}`, 80, 24);
   ctx.fillStyle = '#FFD700';
   ctx.fillText(`🪙 ${coins}`, 340, 24);
   ctx.fillStyle = '#FFF';
@@ -2509,7 +2421,6 @@ function update() {
           'THE SCRUM MASTER',
           'VP OF SYNERGY',
           'CHIEF DISRUPTION OFFICER',
-          'THE TECH LEAD',
         ];
         const worldIdx = Math.min(Math.floor((level-1)/4), bossNames.length-1);
         boss.displayName = bossNames[worldIdx];
