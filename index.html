@@ -1069,7 +1069,7 @@ function spawnBoss() {
   const bossX = (L.flag.x - 3) * TILE;
   boss = {
     x: bossX, y: 12 * TILE - 56,
-    w: 64, h: 56, hp: level <= 4 ? 5 : 8, maxHp: level <= 4 ? 5 : 8,
+    w: 64, h: 56, hp: level <= 4 ? 3 : level <= 8 ? 4 : level <= 12 ? 5 : 6, maxHp: level <= 4 ? 3 : level <= 8 ? 4 : level <= 12 ? 5 : 6,
     vx: -2, vy: 0, phase: 0, timer: 0,
     flash: 0, shakeTimer: 0, defeated: false,
     chargeTimer: 0, jumpTimer: 0,
@@ -1339,12 +1339,19 @@ function updateBoss() {
     playSound(300, 0.1, 'square', 0.1);
   }
 
-  // Speak manager quotes
+  // Speak manager quotes — only when on/near screen, louder when closer
+  const bossScreenX = b.x - cameraX;
+  const bossVisible = bossScreenX > -200 && bossScreenX < canvas.width + 200;
   b.quoteTimer++;
-  if (b.quoteTimer > 240) {
+  if (b.quoteTimer > 200 && bossVisible) {
     b.quoteTimer = 0;
     const q = BOSS_QUOTES[Math.floor(Math.random()*BOSS_QUOTES.length)];
-    speakVoice(q, 0.8, 1.0);
+    // Volume based on distance to player
+    const dist = Math.abs(player.x - b.x);
+    const vol = Math.max(0.3, Math.min(1.0, 1.0 - dist / 800));
+    const u = new SpeechSynthesisUtterance(q);
+    u.rate = 0.8; u.pitch = 1.0; u.volume = vol;
+    if ('speechSynthesis' in window) speechSynthesis.speak(u);
     floatTexts.push({x:b.x-20, y:b.y-40, text:q, timer:80, vy:-0.5});
   }
 
@@ -1514,6 +1521,23 @@ function loadLevel(n) {
   // Easter egg: rare surprise spawns
   surpriseTimer = 0;
   surpriseActive = false;
+  // On boss levels, add laser question blocks near the boss arena
+  if (BOSS_LEVELS.includes(n)) {
+    const bossArea = L.flag.x - 25; // 25 tiles before flag
+    // Add 3 question blocks with lasers in the approach
+    for (let i = 0; i < 3; i++) {
+      const qx = bossArea + i * 8;
+      // Only add if no tile already there
+      if (!levelTiles.find(t => t.x === qx && t.y === 9)) {
+        levelTiles.push({x: qx, y: 9, t: 3, powerup: 'laser'});
+      }
+    }
+    // Also a starfish for good measure
+    const sx = bossArea + 5;
+    if (!levelTiles.find(t => t.x === sx && t.y === 7)) {
+      levelTiles.push({x: sx, y: 7, t: 3, powerup: 'starfish'});
+    }
+  }
   // Flag is always at its normal position — boss guards it
   flagPos = {x: L.flag.x * TILE, y: L.flag.y * TILE};
   player.x = L.playerStart.x * TILE;
