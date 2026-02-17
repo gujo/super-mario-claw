@@ -455,6 +455,8 @@ let deathTimer = 0;
 let winTimer = 0;
 let bossWinTimer = 0;
 let bossWinSpoken = false;
+let bossIntroTimer = 0;
+let bossIntroPhase = 'none'; // none, walk, darken, drop, quote, fight
 let titleBlink = 0;
 let particles = [];
 let floatTexts = [];
@@ -1487,11 +1489,10 @@ function loadLevel(n) {
   teleporting = false; teleportTimer = 0;
   powerups = [];
   lasers = [];
-  // Boss on every 4th level
+  // Boss on every 4th level — spawned during intro cutscene, not at load
   boss = null;
-  if (BOSS_LEVELS.includes(n)) {
-    spawnBoss();
-  }
+  bossIntroTimer = 0;
+  bossIntroPhase = 'none';
   player.starTimer = 0;
   player.big = false;
   player.laserTimer = 0;
@@ -2339,6 +2340,106 @@ function update() {
     return;
   }
 
+  if (gameState === 'bossIntro') {
+    bossIntroTimer++;
+    const L = LEVELS[level - 1];
+    const roomCenterX = (L.flag.x - 10) * TILE;
+
+    if (bossIntroPhase === 'walk') {
+      // Player auto-walks right into the boss room
+      player.vx = 3;
+      player.x += player.vx;
+      player.vy += GRAVITY;
+      player.y += player.vy;
+      worldCollide(player);
+      player.frame++;
+      player.facing = 1;
+      cameraX = Math.max(0, player.x - canvas.width / 3);
+      // After walking into the room
+      if (bossIntroTimer > 60) {
+        bossIntroPhase = 'darken';
+        bossIntroTimer = 0;
+        player.vx = 0;
+        // Deep rumble
+        playSound(50, 0.5, 'sawtooth', 0.15);
+      }
+    } else if (bossIntroPhase === 'darken') {
+      // Screen darkens dramatically
+      if (bossIntroTimer > 40) {
+        bossIntroPhase = 'drop';
+        bossIntroTimer = 0;
+        // Spawn boss above screen, it drops in
+        spawnBoss();
+        boss.y = -80; // start above screen
+        boss.vy = 0;
+        boss.introDropping = true;
+        // Siren sound
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => playSound(200 + i * 80, 0.1, 'square', 0.1), i * 60);
+        }
+      }
+    } else if (bossIntroPhase === 'drop') {
+      // Boss drops from ceiling
+      if (boss && boss.introDropping) {
+        boss.vy += 0.3;
+        boss.y += boss.vy;
+        const groundY = 12 * TILE - boss.h;
+        if (boss.y >= groundY) {
+          boss.y = groundY;
+          boss.vy = 0;
+          boss.introDropping = false;
+          // Ground slam effect
+          playSound(60, 0.3, 'square', 0.2);
+          boss.shakeTimer = 20;
+          // Particle slam
+          for (let i = 0; i < 15; i++) {
+            particles.push({x: boss.x + 32, y: groundY + boss.h, vx: (Math.random()-0.5)*8, vy: -Math.random()*4-1, life: 40, color: '#8B7355', size: 3+Math.random()*4});
+          }
+          bossIntroPhase = 'quote';
+          bossIntroTimer = 0;
+        }
+      }
+    } else if (bossIntroPhase === 'quote') {
+      // Boss says intro line, dramatic pause
+      if (bossIntroTimer === 1) {
+        const introLines = [
+          "I scheduled this 1-on-1 to discuss your performance...",
+          "Before we start, did you update the JIRA board?",
+          "This standup was supposed to end 20 minutes ago!",
+          "Let me check my calendar... I have an opening never.",
+          "Your sprint velocity is unacceptable!",
+          "I'm going to need you to come in on Saturday...",
+          "Per my last email... which you clearly didn't read.",
+          "Let's take this offline. And by offline, I mean right here.",
+        ];
+        const line = introLines[Math.floor(Math.random() * introLines.length)];
+        speakVoice(line, 0.85, 0.9);
+        floatTexts.push({x: boss.x - 40, y: boss.y - 50, text: '🦀 ' + line, timer: 150, vy: -0.3});
+        // Boss name title
+        const bossNames = [
+          'MIDDLE MANAGER CRAB',
+          'THE SCRUM MASTER',
+          'VP OF SYNERGY',
+          'CHIEF DISRUPTION OFFICER',
+        ];
+        const worldIdx = Math.min(Math.floor((level-1)/4), bossNames.length-1);
+        boss.displayName = bossNames[worldIdx];
+      }
+      if (bossIntroTimer > 120) {
+        bossIntroPhase = 'fight';
+        bossIntroTimer = 0;
+      }
+    } else if (bossIntroPhase === 'fight') {
+      // Transition to gameplay
+      gameState = 'playing';
+      bossIntroPhase = 'none';
+      // Play boss music
+      playMusic();
+      speakVoice("Let's ship this!", 1.2, 1.0);
+    }
+    return;
+  }
+
   if (gameState === 'dead') {
     deathTimer++;
     player.vy += GRAVITY;
@@ -2809,6 +2910,21 @@ function update() {
     }
     if (teleportTimer <= 0) teleporting = false;
     return;
+  }
+
+  // Boss intro trigger — player approaches the boss area
+  if (BOSS_LEVELS.includes(level) && !boss && bossIntroPhase === 'none') {
+    const L = LEVELS[level - 1];
+    const triggerX = (L.flag.x - 22) * TILE;
+    if (player.x > triggerX) {
+      gameState = 'bossIntro';
+      bossIntroPhase = 'walk';
+      bossIntroTimer = 0;
+      stopMusic();
+      // Dramatic sound
+      playSound(100, 0.3, 'square', 0.15);
+      setTimeout(() => playSound(80, 0.4, 'square', 0.12), 200);
+    }
   }
 
   // Boss update
@@ -3600,6 +3716,64 @@ function render() {
   drawHUD();
 
   if (gameState === 'win') drawWin();
+
+  // Boss intro cutscene
+  if (gameState === 'bossIntro') {
+    ctx.save();
+    // Progressive darkening during darken phase
+    if (bossIntroPhase === 'darken' || bossIntroPhase === 'drop' || bossIntroPhase === 'quote') {
+      const darkness = bossIntroPhase === 'darken' ? Math.min(0.6, bossIntroTimer / 40 * 0.6) : 0.6;
+      ctx.fillStyle = `rgba(0,0,0,${darkness})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    // Warning flash during darken
+    if (bossIntroPhase === 'darken' && bossIntroTimer > 20) {
+      const flash = Math.sin(bossIntroTimer * 0.3) * 0.15;
+      if (flash > 0) {
+        ctx.fillStyle = `rgba(255,0,0,${flash})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    // Draw boss dropping from above
+    if ((bossIntroPhase === 'drop' || bossIntroPhase === 'quote') && boss) {
+      drawBoss(cameraX, 0);
+    }
+    // "WARNING" text
+    if (bossIntroPhase === 'darken') {
+      ctx.font = 'bold 48px monospace';
+      ctx.textAlign = 'center';
+      const blink = Math.floor(bossIntroTimer / 6) % 2;
+      ctx.fillStyle = blink ? '#FF0000' : '#880000';
+      ctx.fillText('⚠ WARNING ⚠', canvas.width/2, canvas.height/2 - 20);
+      ctx.font = '20px monospace';
+      ctx.fillStyle = '#FFF';
+      ctx.fillText('BOSS APPROACHING', canvas.width/2, canvas.height/2 + 20);
+      ctx.textAlign = 'left';
+    }
+    // Boss title card during quote phase
+    if (bossIntroPhase === 'quote' && boss && boss.displayName) {
+      ctx.textAlign = 'center';
+      // Dramatic boss name
+      const nameScale = Math.min(1, bossIntroTimer / 20);
+      ctx.save();
+      ctx.translate(canvas.width/2, 60);
+      ctx.scale(nameScale, nameScale);
+      ctx.font = 'bold 36px monospace';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 4;
+      ctx.strokeText(boss.displayName, 0, 0);
+      ctx.fillStyle = '#FF4444';
+      ctx.fillText(boss.displayName, 0, 0);
+      // HP bar underneath
+      ctx.fillStyle = '#333';
+      ctx.fillRect(-80, 15, 160, 12);
+      ctx.fillStyle = '#F00';
+      ctx.fillRect(-78, 17, 156, 8);
+      ctx.restore();
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  }
 
   // Boss win cutscene — mushroom hat guy in a room
   if (gameState === 'bossWin') {
