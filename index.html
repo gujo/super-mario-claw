@@ -267,7 +267,7 @@ const SONGS = {
 };
 
 // Map level numbers to songs
-const LEVEL_SONG = [null,'overworld','night','underwater','boss','space','matrix','candy','boss','neon','void','matrix','boss','overworld','dark','neon','boss'];
+const LEVEL_SONG = [null,'overworld','night','underwater','boss','space','matrix','candy','boss','neon','void','matrix','boss','overworld','dark','neon','boss',null,null,null,null,'overworld','night','neon'];
 
 function getSongForLevel(lvl) {
   if (lvl >= 1 && lvl < LEVEL_SONG.length && LEVEL_SONG[lvl]) return SONGS[LEVEL_SONG[lvl]];
@@ -1093,6 +1093,75 @@ const LEVELS = [
     seagulls:[{x:22,y:2},{x:76,y:2},{x:136,y:2}],
     tubes:[{x:40,y:11,destLevel:1,destX:3,destY:10,color:'#FFF'}],
     flag:{x:167,y:3},playerStart:{x:2,y:12}
+  },
+  // Level 21 — PUBLIC SECTOR OFFICE (World 6-1)
+  {
+    width: 150, bg: '#E8E0D0', groundColor: '#8B8578', brickColor: '#A0978A', publicOffice: true,
+    platforms: [
+      ...Array.from({length:150},(_,i)=>{if((i>=28&&i<=32)||(i>=55&&i<=60)||(i>=82&&i<=87)||(i>=112&&i<=116))return null;return{x:i,y:14,t:1}}).filter(Boolean),
+      ...Array.from({length:150},(_,i)=>{if((i>=28&&i<=32)||(i>=55&&i<=60)||(i>=82&&i<=87)||(i>=112&&i<=116))return null;return{x:i,y:13,t:1}}).filter(Boolean),
+      {x:8,y:10,t:2},{x:9,y:10,t:3},{x:10,y:10,t:2},{x:16,y:7,t:2},{x:17,y:7,t:3},{x:22,y:5,t:3},
+      {x:33,y:10,t:2},{x:34,y:10,t:3},{x:35,y:10,t:2},{x:40,y:7,t:2},{x:41,y:7,t:3},{x:46,y:5,t:2},
+      {x:50,y:9,t:3},{x:51,y:9,t:2},{x:61,y:10,t:2},{x:62,y:10,t:3},{x:63,y:10,t:2},
+      {x:68,y:7,t:2},{x:69,y:7,t:3},{x:75,y:5,t:3},
+      {x:88,y:10,t:2},{x:89,y:10,t:3},{x:90,y:10,t:2},{x:95,y:7,t:2},{x:96,y:7,t:3},
+      {x:102,y:5,t:3},{x:107,y:9,t:2},{x:108,y:9,t:3},
+      {x:117,y:10,t:2},{x:118,y:10,t:3},{x:119,y:10,t:2},{x:125,y:7,t:2},{x:126,y:7,t:3},
+      {x:132,y:12,t:1},{x:133,y:12,t:1},{x:133,y:11,t:1},{x:134,y:12,t:1},{x:134,y:11,t:1},{x:134,y:10,t:1},
+    ],
+    coins:[{x:9,y:8},{x:17,y:5},{x:22,y:3},{x:34,y:8},{x:41,y:5},{x:50,y:7},{x:62,y:8},{x:69,y:5},{x:75,y:3},{x:89,y:8},{x:96,y:5},{x:102,y:3},{x:108,y:7},{x:118,y:8},{x:126,y:5}],
+    crabs:[{x:14,y:12},{x:38,y:12},{x:52,y:12},{x:66,y:12},{x:80,y:12},{x:93,y:12},{x:110,y:12},{x:122,y:12}],
+    urchins:[{x:20,y:12},{x:45,y:12},{x:72,y:12},{x:100,y:12},{x:128,y:12}],
+    seagulls:[{x:35,y:2},{x:95,y:2}],
+    tubes:[{x:70,y:11,destLevel:6,destX:5,destY:10,color:'#888'}],
+    flag:{x:147,y:3},playerStart:{x:2,y:12}
+  },
+  // Level 22 — EMPTY SHOPPING MALL (World 6-2)
+  {
+    width: 145, bg: '#F0E8E0', groundColor: '#C0B8A8', brickColor: '#D0C8B8', emptyMall: true,
+    platforms: [
+      ...Array.from({length:145},(_,i)=>{if((i>=25&&i<=30)||(i>=50&&i<=55)||(i>=78&&i<=83)||(i>=108&&i<=113))return null;return{x:i,y:14,t:1}}).filter(Boolean),
+      ...Array.from({length:145},(_,i)=>{if((i>=25&&i<=30)||(i>=50&&i<=55)||(i>=78&&i<=83)||(i>=108&&i<=113))return null;return{x:i,y:13,t:1}}).filter(Boolean),
+      {x:10,y:10,t:2},{x:11,y:10,t:3},{x:12,y:10,t:2},{x:18,y:7,t:3},{x:19,y:7,t:2},
+      {x:31,y:10,t:2},{x:32,y:10,t:3},{x:33,y:10,t:2},{x:38,y:7,t:2},{x:39,y:7,t:3},{x:44,y:5,t:3},
+      {x:56,y:10,t:2},{x:57,y:10,t:3},{x:58,y:10,t:2},{x:64,y:7,t:2},{x:65,y:7,t:3},
+      {x:70,y:5,t:3},{x:74,y:9,t:2},{x:75,y:9,t:3},
+      {x:84,y:10,t:2},{x:85,y:10,t:3},{x:86,y:10,t:2},{x:92,y:7,t:2},{x:93,y:7,t:3},
+      {x:98,y:5,t:2},{x:103,y:9,t:3},{x:104,y:9,t:2},
+      {x:114,y:10,t:2},{x:115,y:10,t:3},{x:116,y:10,t:2},{x:122,y:7,t:2},{x:123,y:7,t:3},
+      {x:130,y:12,t:1},{x:131,y:12,t:1},{x:131,y:11,t:1},{x:132,y:12,t:1},{x:132,y:11,t:1},{x:132,y:10,t:1},
+    ],
+    coins:[{x:11,y:8},{x:18,y:5},{x:32,y:8},{x:39,y:5},{x:44,y:3},{x:57,y:8},{x:65,y:5},{x:70,y:3},{x:75,y:7},{x:85,y:8},{x:93,y:5},{x:103,y:7},{x:115,y:8},{x:123,y:5}],
+    crabs:[{x:15,y:12},{x:36,y:12},{x:48,y:12},{x:62,y:12},{x:76,y:12},{x:90,y:12},{x:106,y:12},{x:120,y:12}],
+    jellyfish:[{x:22,y:5},{x:60,y:4},{x:95,y:6},{x:118,y:5}],
+    urchins:[{x:28,y:12},{x:53,y:12},{x:80,y:12},{x:110,y:12}],
+    seagulls:[{x:40,y:2},{x:100,y:2}],
+    tubes:[{x:65,y:11,destLevel:9,destX:5,destY:10,color:'#C0B'}],
+    flag:{x:142,y:3},playerStart:{x:2,y:12}
+  },
+  // Level 23 — STINKY PUBLIC TRANSPORT (World 6-3)
+  {
+    width: 155, bg: '#2A2A10', groundColor: '#4A4A20', brickColor: '#5A5A30', stinkyTransport: true,
+    platforms: [
+      ...Array.from({length:155},(_,i)=>{if((i>=30&&i<=35)||(i>=58&&i<=63)||(i>=88&&i<=93)||(i>=120&&i<=125))return null;return{x:i,y:14,t:1}}).filter(Boolean),
+      ...Array.from({length:155},(_,i)=>{if((i>=30&&i<=35)||(i>=58&&i<=63)||(i>=88&&i<=93)||(i>=120&&i<=125))return null;return{x:i,y:13,t:1}}).filter(Boolean),
+      {x:8,y:10,t:3},{x:9,y:10,t:2},{x:10,y:10,t:2},{x:16,y:7,t:2},{x:17,y:7,t:3},{x:22,y:5,t:3},
+      {x:36,y:10,t:2},{x:37,y:10,t:3},{x:38,y:10,t:2},{x:44,y:7,t:2},{x:45,y:7,t:3},{x:50,y:5,t:2},
+      {x:54,y:9,t:3},{x:55,y:9,t:2},{x:64,y:10,t:2},{x:65,y:10,t:3},{x:66,y:10,t:2},
+      {x:72,y:7,t:2},{x:73,y:7,t:3},{x:78,y:5,t:3},{x:83,y:9,t:2},{x:84,y:9,t:3},
+      {x:94,y:10,t:2},{x:95,y:10,t:3},{x:96,y:10,t:2},{x:102,y:7,t:2},{x:103,y:7,t:3},
+      {x:108,y:5,t:3},{x:114,y:9,t:2},{x:115,y:9,t:3},
+      {x:126,y:10,t:2},{x:127,y:10,t:3},{x:128,y:10,t:2},{x:134,y:7,t:2},{x:135,y:7,t:3},
+      {x:140,y:12,t:1},{x:141,y:12,t:1},{x:141,y:11,t:1},{x:142,y:12,t:1},{x:142,y:11,t:1},{x:142,y:10,t:1},
+      {x:143,y:12,t:1},{x:143,y:11,t:1},{x:143,y:10,t:1},{x:143,y:9,t:1},
+    ],
+    coins:[{x:9,y:8},{x:17,y:5},{x:22,y:3},{x:37,y:8},{x:45,y:5},{x:54,y:7},{x:65,y:8},{x:73,y:5},{x:78,y:3},{x:84,y:7},{x:95,y:8},{x:103,y:5},{x:108,y:3},{x:115,y:7},{x:127,y:8},{x:135,y:5}],
+    crabs:[{x:14,y:12},{x:40,y:12},{x:56,y:12},{x:70,y:12},{x:86,y:12},{x:100,y:12},{x:118,y:12},{x:132,y:12}],
+    urchins:[{x:20,y:12},{x:48,y:12},{x:76,y:12},{x:106,y:12},{x:138,y:12}],
+    jellyfish:[{x:33,y:5},{x:61,y:4},{x:91,y:6},{x:123,y:5}],
+    seagulls:[{x:25,y:2},{x:80,y:2},{x:130,y:2}],
+    tubes:[{x:45,y:11,destLevel:2,destX:5,destY:10,color:'#4A0'},{x:105,y:11,destLevel:14,destX:5,destY:10,color:'#AA0'}],
+    flag:{x:152,y:3},playerStart:{x:2,y:12}
   }
 ];
 
@@ -3332,6 +3401,119 @@ function render() {
     ctx.fillStyle = 'rgba(255,255,255,'+(Math.sin(Date.now()*0.001)*0.3+0.3)+')';
     ctx.font = '14px monospace'; ctx.textAlign = 'center';
     ctx.fillText(voidTxts[vti], canvas.width/2, canvas.height/2-50);
+    ctx.textAlign = 'left';
+  } else if (L.publicOffice) {
+    // Fluorescent flicker overlay
+    ctx.fillStyle = 'rgba(255,255,240,'+(0.03+Math.random()*0.04)+')';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    // Ceiling tiles grid
+    ctx.strokeStyle = 'rgba(180,170,150,0.3)'; ctx.lineWidth = 1;
+    for (let gx = 0; gx < canvas.width; gx += 60) { ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,canvas.height*0.4); ctx.stroke(); }
+    for (let gy = 0; gy < canvas.height*0.4; gy += 40) { ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(canvas.width,gy); ctx.stroke(); }
+    // Water cooler
+    const wcx = (300-cameraX*0.2) % (canvas.width+200);
+    ctx.fillStyle = '#B8D8E8'; ctx.fillRect(wcx,canvas.height-130,20,50);
+    ctx.fillStyle = '#6090A0'; ctx.fillRect(wcx-3,canvas.height-135,26,8);
+    ctx.fillStyle = '#888'; ctx.fillRect(wcx+2,canvas.height-80,16,16);
+    // Floating sticky notes
+    const stickyColors = ['#FFFF88','#FF88CC','#88FF88','#88CCFF','#FFB366'];
+    for (let i = 0; i < 8; i++) {
+      const sx = (i*130+Math.sin(Date.now()*0.0008+i*2)*20-cameraX*0.3) % (canvas.width+200);
+      const sy = 40+Math.sin(Date.now()*0.001+i*1.5)*15+(i%3)*30;
+      ctx.fillStyle = stickyColors[i%stickyColors.length]; ctx.globalAlpha = 0.6;
+      ctx.fillRect(sx,sy,24,24);
+      ctx.fillStyle = '#666'; ctx.font = '6px monospace';
+      ctx.fillText('TODO',sx+2,sy+10); ctx.fillText('ASAP',sx+2,sy+18);
+    }
+    ctx.globalAlpha = 1;
+    // Paper airplanes drifting
+    ctx.strokeStyle = '#CCC'; ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      const px = (Date.now()*0.02+i*200) % (canvas.width+100)-50;
+      const py = 60+i*40+Math.sin(Date.now()*0.002+i)*15;
+      ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+12,py+4); ctx.lineTo(px,py+8); ctx.lineTo(px+4,py+4); ctx.closePath(); ctx.stroke();
+    }
+    // Depressing office signs
+    const officeTxts = ['HANG IN THERE!','MEETING AT 3','FIKA CANCELLED','QUARTERLY REVIEW','SYNERGY','PLEASE WASH YOUR MUG'];
+    const oti = Math.floor(Date.now()/4000) % officeTxts.length;
+    ctx.fillStyle = 'rgba(120,110,100,0.5)'; ctx.font = '12px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(officeTxts[oti], canvas.width/2, 25);
+    ctx.textAlign = 'left';
+  } else if (L.emptyMall) {
+    // Faded tile floor pattern
+    ctx.globalAlpha = 0.15;
+    for (let tx = 0; tx < canvas.width; tx += 40) for (let ty = canvas.height*0.5; ty < canvas.height-64; ty += 40) {
+      ctx.fillStyle = (Math.floor(tx/40)+Math.floor(ty/40))%2===0 ? '#E0D8C8' : '#D0C8B8';
+      ctx.fillRect(tx,ty,40,40);
+    }
+    ctx.globalAlpha = 1;
+    // Empty storefronts
+    const storeNames = ['FOREVER 21%','RADIO SHUCK','SEARS (RIP)','BLOCKBUSTER','TOYS WERE US','KMART GHOST'];
+    for (let i = 0; i < 6; i++) {
+      const stx = ((i*180+40)-cameraX*0.15) % (canvas.width+250);
+      // Storefront frame
+      ctx.fillStyle = 'rgba(80,70,60,0.3)'; ctx.fillRect(stx,40,120,80);
+      ctx.strokeStyle = 'rgba(100,90,80,0.4)'; ctx.lineWidth = 2; ctx.strokeRect(stx,40,120,80);
+      // Dark window
+      ctx.fillStyle = 'rgba(20,15,10,0.5)'; ctx.fillRect(stx+5,50,110,50);
+      // Store sign
+      ctx.fillStyle = 'rgba(150,140,120,'+(0.3+Math.sin(Date.now()*0.001+i)*0.15)+')';
+      ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(storeNames[i], stx+60, 115);
+    }
+    ctx.textAlign = 'left';
+    // Tumbleweeds / dust
+    ctx.fillStyle = 'rgba(180,170,140,0.4)';
+    for (let i = 0; i < 10; i++) {
+      const dx = (Date.now()*0.015+i*150) % (canvas.width+80)-40;
+      const dy = canvas.height-80+Math.sin(Date.now()*0.003+i)*8;
+      const ds = 3+Math.sin(i*7)*2;
+      ctx.beginPath(); ctx.arc(dx,dy,ds,0,Math.PI*2); ctx.fill();
+    }
+    // Escalator shapes
+    const esx = (500-cameraX*0.2) % (canvas.width+200);
+    ctx.strokeStyle = 'rgba(100,90,80,0.3)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(esx,canvas.height-64); ctx.lineTo(esx+60,canvas.height-120); ctx.lineTo(esx+70,canvas.height-120); ctx.lineTo(esx+10,canvas.height-64); ctx.closePath(); ctx.stroke();
+    // Steps
+    for (let s = 0; s < 6; s++) { const sy2 = canvas.height-70-s*9; ctx.beginPath(); ctx.moveTo(esx+s*10+2,sy2); ctx.lineTo(esx+s*10+12,sy2); ctx.stroke(); }
+  } else if (L.stinkyTransport) {
+    // Sardine-packed commuter silhouettes in background
+    ctx.fillStyle = 'rgba(60,60,30,0.4)';
+    for (let i = 0; i < 20; i++) {
+      const cx2 = ((i*50+10)-cameraX*0.1) % (canvas.width+100);
+      const ch = 35+i%3*5;
+      ctx.beginPath(); ctx.arc(cx2+8,canvas.height-64-ch-6,6,0,Math.PI*2); ctx.fill(); // head
+      ctx.fillRect(cx2,canvas.height-64-ch,16,ch); // body
+    }
+    // Green stink clouds
+    const stinkG = ['rgba(80,120,20,','rgba(60,100,10,','rgba(100,130,30,'];
+    for (let i = 0; i < 12; i++) {
+      const sx2 = (i*100+Math.sin(Date.now()*0.0006+i*3)*30) % canvas.width;
+      const sy2 = canvas.height-100-Math.sin(Date.now()*0.001+i*2)*25-(i%3)*20;
+      const sr = 12+Math.sin(Date.now()*0.002+i)*5;
+      ctx.fillStyle = stinkG[i%3]+(0.15+Math.sin(Date.now()*0.001+i)*0.08)+')';
+      ctx.beginPath(); ctx.arc(sx2,sy2,sr,0,Math.PI*2); ctx.arc(sx2+sr*0.8,sy2-sr*0.3,sr*0.7,0,Math.PI*2); ctx.fill();
+    }
+    // Sweat drops falling
+    ctx.fillStyle = 'rgba(150,180,200,0.5)';
+    for (let i = 0; i < 8; i++) {
+      const sdx = (i*110+40) % canvas.width;
+      const sdy = (Date.now()*0.03+i*80) % (canvas.height);
+      ctx.beginPath(); ctx.moveTo(sdx,sdy); ctx.quadraticCurveTo(sdx+3,sdy+6,sdx,sdy+10); ctx.quadraticCurveTo(sdx-3,sdy+6,sdx,sdy); ctx.fill();
+    }
+    // Handrails at top
+    ctx.strokeStyle = 'rgba(120,120,60,0.4)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(canvas.width,30); ctx.stroke();
+    for (let i = 0; i < 15; i++) {
+      const hx = (i*60+20) % canvas.width;
+      ctx.beginPath(); ctx.moveTo(hx,30); ctx.lineTo(hx,50); ctx.stroke();
+      ctx.beginPath(); ctx.arc(hx,52,4,0,Math.PI*2); ctx.stroke(); // handle loops
+    }
+    // Miserable announcements
+    const transTxts = ['NEXT STOP: DELAYED','DOORS CLOSING... EVENTUALLY','SIGNAL FAILURE AHEAD','MIND THE GAP (AND THE SMELL)','SERVICE DISRUPTION','REPLACEMENT BUS SERVICE'];
+    const tti = Math.floor(Date.now()/3500) % transTxts.length;
+    ctx.fillStyle = 'rgba(200,180,50,'+(0.4+Math.sin(Date.now()*0.002)*0.2)+')'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(transTxts[tti], canvas.width/2, 20);
     ctx.textAlign = 'left';
   } else {
     drawClouds();
